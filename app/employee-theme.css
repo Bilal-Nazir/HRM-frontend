@@ -1,0 +1,36 @@
+/* Employee workspace: the same mint, emerald and navy used at sign-in. */
+.employee-shell .main-area { background:radial-gradient(ellipse at 95% 0,rgba(180,231,212,.2),transparent 42%),#f8faf9; }
+.employee-shell .sidebar { background:linear-gradient(180deg,#fbfdfc,#eef8f3); }
+.employee-welcome { display:flex;justify-content:space-between;align-items:center;gap:24px;padding:10px 0 28px; }
+.employee-welcome h1 { font-size:clamp(28px,3vw,38px);letter-spacing:-.045em; }
+.greeting-dot { color:#1aa782; }
+.employee-welcome p { margin:10px 0 0;color:#718195;font-size:14px; }
+.employee-welcome .button { flex-shrink:0;background:#fff; }
+.employee-stats { grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-bottom:24px; }
+.employee-stats .stat-card { flex-direction:column;gap:14px;padding:23px 25px;border-color:#e3ece8;box-shadow:0 8px 24px rgba(24,65,55,.035); }
+.employee-stats .stat-card:after { display:none; }
+.employee-stats .stat-card strong { margin:7px 0;font-size:clamp(20px,2vw,27px);letter-spacing:-.04em; }
+.employee-stats .stat-card small { font-size:12px;line-height:1.5; }
+.employee-stats .stat-icon { width:42px;height:42px;color:#118e77;background:#e0f3eb; }
+.employee-stats .stat-card:nth-child(2) .stat-icon { background:#edf4f6;color:#426579; }
+.employee-stats .stat-card:nth-child(3) .stat-icon { background:#f4f1e8;color:#827046; }
+.employee-overview { grid-template-columns:minmax(0,1.65fr) minmax(290px,.85fr);align-items:stretch;gap:22px; }
+.employee-history { box-shadow:0 8px 24px rgba(24,65,55,.035); }
+.employee-history .card-header { padding:23px; }
+.employee-history .empty-state { min-height:260px;display:flex;flex-direction:column;justify-content:center; }
+.employee-history .empty-orbit { border-radius:13px;border-color:#b7ddcf;background:#eff8f3; }
+.employee-day-card { padding:26px;background:linear-gradient(130deg,#e1f2e9,#f4faf6 75%);border-color:#cfe5da;box-shadow:0 10px 30px rgba(27,87,68,.05); }
+.employee-day-top { display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;color:#168c70; }
+.employee-day-top .eyebrow { margin:0;letter-spacing:.12em;font-size:10px; }
+.employee-day-card h2 { max-width:260px;font-size:24px;line-height:1.25;color:#132747; }
+.employee-day-card>p { color:#627b73;font-size:13px;line-height:1.7;max-width:300px; }
+.employee-day-card .clock-display { margin:21px 0 4px;color:#132747;font-size:42px; }
+.employee-day-card .clock-caption { color:#71857d; }
+.employee-day-card .button-primary { margin-top:24px;min-height:46px;background:linear-gradient(105deg,#118e77,#22ae88);color:white; }
+.employee-location { display:flex;align-items:center;justify-content:center;gap:6px;margin-top:14px;color:#607b72;font-size:10px;line-height:1.5; }
+.employee-location svg { flex-shrink:0; }
+.employee-loading { min-height:260px;display:grid;place-items:center;color:#718195;font-size:13px; }
+.employee-load-error { display:flex;align-items:flex-start;gap:12px;margin-bottom:20px; }
+.employee-load-error .error-banner { flex:1;margin:0; }
+@media(max-width:1100px) { .employee-overview { grid-template-columns:1fr; }.employee-day-card h2,.employee-day-card>p { max-width:none; } }
+@media(max-width:760px) { .employee-welcome { align-items:flex-start;flex-direction:column;gap:18px;padding-top:0; }.employee-stats { grid-template-columns:1fr;gap:12px; }.employee-stats .stat-card { flex-direction:row;align-items:center;padding:20px; }.employee-history .card-header { flex-wrap:wrap; }.employee-day-card { padding:24px; } }
