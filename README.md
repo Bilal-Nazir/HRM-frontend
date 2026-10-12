@@ -2,6 +2,18 @@
 
 Next.js frontend for the HRM backend.
 
+## Docker deployment
+
+This repository includes a multi-stage Dockerfile using Next.js standalone output.
+Keep it alongside `HRM-backend` and use that repository's `compose.yaml` and
+`deploy/README.md` to run the complete frontend/backend/MongoDB/Redis stack.
+Compose builds this frontend with `NEXT_PUBLIC_API_URL=/api`; Caddy routes API
+requests to the backend on the same origin. No private secrets belong in build arguments.
+
+The AWS workflow in `.github/workflows/deploy.yml` builds on pushes to `main`.
+The shared AWS server and four Actions secrets are configured. See
+`HRM-backend/deploy/AWS-PIPELINE.md` for operations and limitations.
+
 ## Setup
 
 1. Copy `.env.example` to `.env.local`.
