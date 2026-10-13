@@ -12,6 +12,7 @@ import { api } from "@/lib/api";
 import { captureAttendanceLocation, errorMessage } from "@/lib/workspace";
 import { useClientClock } from "@/lib/useClientClock";
 import { Attendance } from "@/types";
+import { AttendanceInsights, AttendanceLocation, AttendanceSummary } from "@/components/AttendanceInsights";
 import { Clock3, LocateFixed, LogIn, LogOut } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -32,6 +33,7 @@ function sessionDuration(record: Attendance) {
 
 export default function AttendancePage() {
   const [records, setRecords] = useState<Attendance[] | null>(null);
+  const [summary, setSummary] = useState<AttendanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [action, setAction] = useState<"idle" | "locating" | "saving">("idle");
   const [loadError, setLoadError] = useState("");
@@ -49,6 +51,7 @@ export default function AttendancePage() {
         "/attendance/history?size=50",
       );
       setRecords(result.attendances || []);
+      api.get<AttendanceSummary>("/attendance/summary").then(setSummary).catch(() => setSummary(null));
     } catch (error) {
       setRecords(null);
       setLoadError(errorMessage(error));
@@ -215,6 +218,7 @@ export default function AttendancePage() {
           </div>
         </section>
 
+        <AttendanceInsights summary={summary} />
         <section className="card attendance-history" aria-busy={loading}>
           <div className="card-header">
             <div>
@@ -269,14 +273,8 @@ export default function AttendancePage() {
                             })
                           : "—"}
                       </td>
-                      <td>{sessionDuration(record)}</td>
-                      <td>
-                        {record.checkInWithinGeofence === true
-                          ? "Within office area"
-                          : record.checkInWithinGeofence === false
-                            ? "Outside office area"
-                            : "Not verified"}
-                      </td>
+                      <td>{sessionDuration(record)}{record.flags?.length ? <small className="attendance-flags">{record.flags.join(", ").replaceAll("_", " ")}</small> : null}</td>
+                      <td><AttendanceLocation record={record} /></td>
                       <td>
                         <StatusPill value={record.status} />
                       </td>

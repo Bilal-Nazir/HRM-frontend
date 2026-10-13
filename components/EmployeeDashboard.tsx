@@ -19,6 +19,7 @@ import AppShell from "@/components/AppShell";
 import { EmptyState, ErrorBanner, StatCard, StatusPill } from "@/components/ui";
 import { api } from "@/lib/api";
 import { Attendance, Employee } from "@/types";
+import { AttendanceInsights, AttendanceSummary, AttendanceLocation } from "@/components/AttendanceInsights";
 
 function sessionDuration(session: Attendance | undefined, now: Date | null) {
   if (!session || !now) return "—";
@@ -35,6 +36,7 @@ export default function EmployeeDashboard() {
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [attendance, setAttendance] = useState<Attendance[] | null>(null);
   const [pendingCount, setPendingCount] = useState<number | null>(null);
+  const [summary, setSummary] = useState<AttendanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState<string[]>([]);
   const [reload, setReload] = useState(0);
@@ -47,7 +49,7 @@ export default function EmployeeDashboard() {
 
   useEffect(() => {
     setNow(new Date());
-    const timer = setInterval(() => setNow(new Date()), 30000);
+    const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -61,7 +63,8 @@ export default function EmployeeDashboard() {
       api.get<{ totalCount: number }>(
         "/leave/requests/history?status=pending&size=1",
       ),
-    ]).then(([profile, sessions, pending]) => {
+      api.get<AttendanceSummary>("/attendance/summary"),
+    ]).then(([profile, sessions, pending, metrics]) => {
       if (cancelled) return;
       const failed: string[] = [];
       if (profile.status === "fulfilled") setEmployee(profile.value.employee);
@@ -78,6 +81,7 @@ export default function EmployeeDashboard() {
         setPendingCount(null);
         failed.push("leave requests");
       }
+      setSummary(metrics.status === "fulfilled" ? metrics.value : null);
       setErrors(failed);
       setLoading(false);
     });
@@ -105,7 +109,7 @@ export default function EmployeeDashboard() {
       ? "Within office area"
       : session?.checkInWithinGeofence === false
         ? "Outside office area"
-        : "Not verified";
+        : session?.checkInLocation ? "Location captured" : "Location unavailable";
 
   const recordAttendance = async (confirmed = false) => {
     if (attendanceBusy.current || loading || attendance === null) return;
@@ -163,6 +167,7 @@ export default function EmployeeDashboard() {
               <span className="greeting-dot">.</span>
             </h1>
             <p>Your time, your leave, your day. All in one place.</p>
+            <p className="welcome-clock" aria-label="Current local time">{now ? now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—"}</p>
             <button
               type="button"
               className="button button-primary dashboard-check-button"
@@ -235,9 +240,11 @@ export default function EmployeeDashboard() {
             note="Your pending leave requests"
             icon={<Palmtree size={20} />}
           />
+          <StatCard label="Working days" value={summary?.totalWorkingDays ?? "—"} note={`${summary?.totalWorkedHours.toFixed(1) ?? "—"} hours recorded this year`} icon={<CalendarCheck2 size={20} />} />
         </section>
 
         <AnnouncementsPanel />
+        <AttendanceInsights summary={summary} />
         <section className="dashboard-grid employee-overview">
           <div className="card employee-history">
             <div className="card-header">
@@ -268,6 +275,9 @@ export default function EmployeeDashboard() {
                       <th>Date</th>
                       <th>Check in</th>
                       <th>Check out</th>
+                      <th>Hours</th>
+                      <th>Location</th>
+                      <th>Flags</th>
                       <th>Status</th>
                     </tr>
                   </thead>
@@ -289,6 +299,9 @@ export default function EmployeeDashboard() {
                               })
                             : "In progress"}
                         </td>
+                        <td>{sessionDuration(item, now)}</td>
+                        <td><AttendanceLocation record={item} /></td>
+                        <td>{item.flags?.length ? <span className="attendance-flags">{item.flags.join(", ").replaceAll("_", " ")}</span> : "—"}</td>
                         <td>
                           <StatusPill value={item.status} />
                         </td>

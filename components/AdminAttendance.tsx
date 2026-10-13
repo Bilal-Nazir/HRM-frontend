@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Attendance } from "@/types";
 import { useLiveData } from "@/lib/useLiveData";
 import { EmptyState, ErrorBanner, StatusPill } from "@/components/ui";
+import { AttendanceLocation } from "@/components/AttendanceInsights";
 
 export type AttendanceOverview = {
   attendances: Attendance[];
@@ -16,9 +17,11 @@ export type AttendanceOverview = {
 };
 export default function AdminAttendance() {
   const [openOnly, setOpenOnly] = useState(true);
+  const [flagsOnly, setFlagsOnly] = useState(false);
+  useEffect(() => { const params = new URLSearchParams(window.location.search); setFlagsOnly(params.get("flags") === "true"); setOpenOnly(params.get("open") !== "false" && params.get("flags") !== "true"); }, []);
   const [page, setPage] = useState(1);
   const { data, error, refresh } = useLiveData<AttendanceOverview>(
-    `/attendance/manage?open=${openOnly}&size=20&page=${page}`,
+    `/attendance/manage?open=${openOnly}&flags=${flagsOnly}&size=20&page=${page}`,
   );
   return (
     <section className="card">
@@ -36,14 +39,16 @@ export default function AdminAttendance() {
         <div className="admin-table-actions">
           <select
             aria-label="Attendance filter"
-            value={openOnly ? "open" : "all"}
+            value={flagsOnly ? "flags" : openOnly ? "open" : "all"}
             onChange={(e) => {
               setOpenOnly(e.target.value === "open");
+              setFlagsOnly(e.target.value === "flags");
               setPage(1);
             }}
           >
             <option value="open">Checked in now</option>
             <option value="all">All sessions</option>
+            <option value="flags">Flagged sessions</option>
           </select>
           <button className="button button-secondary" onClick={refresh}>
             Refresh
@@ -70,6 +75,7 @@ export default function AdminAttendance() {
                   <th>Check in</th>
                   <th>Check out</th>
                   <th>Location</th>
+                  <th>Flags</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -89,13 +95,8 @@ export default function AdminAttendance() {
                         ? new Date(item.checkOutAt).toLocaleString()
                         : "In progress"}
                     </td>
-                    <td>
-                      {item.checkInWithinGeofence === true
-                        ? "Verified"
-                        : item.checkInWithinGeofence === false
-                          ? "Outside office area"
-                          : "Not verified"}
-                    </td>
+                    <td><AttendanceLocation record={item} /></td>
+                    <td>{item.flags?.length ? <span className="attendance-flags">{item.flags.join(", ").replaceAll("_", " ")}</span> : "—"}</td>
                     <td>
                       <StatusPill value={item.status} />
                     </td>

@@ -5,9 +5,12 @@ export type Employee = {
   lastName: string;
   workEmail: string;
   phone?: string;
+  personalEmail?: string;
+  timezone?: string;
   jobTitle?: string;
   employmentStatus: string;
   departmentId?: string;
+  employmentType?: string;
 };
 
 export type Attendance = {
@@ -18,6 +21,11 @@ export type Attendance = {
   checkOutAt?: string;
   status: string;
   checkInWithinGeofence?: boolean;
+  checkOutWithinGeofence?: boolean;
+  checkInLocation?: { latitude: number; longitude: number; accuracyMeters?: number; address?: string };
+  checkOutLocation?: { latitude: number; longitude: number; accuracyMeters?: number; address?: string };
+  workedHours?: number;
+  flags?: string[];
 };
 
 export type LeaveType = {
@@ -33,7 +41,8 @@ export type LeaveRequest = {
   leaveTypeName?: string;
   id: string;
   employeeId: string;
-  leaveTypeId: string;
+  leaveTypeId?: string;
+  requestKind?: "leave" | "work_from_home";
   startDate: string;
   endDate: string;
   totalDays: number;

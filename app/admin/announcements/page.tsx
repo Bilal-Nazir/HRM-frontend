@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Plus, Pencil, Megaphone } from "lucide-react";
+import { Plus, Pencil, Megaphone, Trash2 } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import {
   EmptyState,
@@ -85,6 +85,13 @@ export default function ManageAnnouncementsPage() {
     } finally {
       setSaving(false);
     }
+  };
+  const remove = async (item: Announcement) => {
+    if (!window.confirm(`Delete announcement “${item.title}”? It will no longer appear for employees.`)) return;
+    setSaving(true); setError("");
+    try { await api.delete(`/announcements/${item.id}`); setSuccess("Announcement deleted."); await load(); }
+    catch (err) { setError(errorMessage(err)); }
+    finally { setSaving(false); }
   };
   return (
     <AppShell>
@@ -241,6 +248,7 @@ export default function ManageAnnouncementsPage() {
                             <Pencil size={14} />
                             Edit
                           </button>
+                          <button className="button button-secondary" disabled={saving} onClick={() => void remove(item)}><Trash2 size={14} /> Delete</button>
                         </td>
                       </tr>
                     ))}

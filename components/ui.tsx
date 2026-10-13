@@ -1,11 +1,13 @@
 import { ReactNode } from "react";
+import Link from "next/link";
 
 export function PageHeader({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: ReactNode }) {
   return <div className="page-header"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{description}</p></div>{action && <div className="page-actions">{action}</div>}</div>;
 }
 
-export function StatCard({ label, value, note, icon }: { label: string; value: string | number; note: string; icon: ReactNode }) {
-  return <article className="stat-card"><div className="stat-icon">{icon}</div><div><span>{label}</span><strong>{value}</strong><small>{note}</small></div></article>;
+export function StatCard({ label, value, note, icon, href }: { label: string; value: string | number; note: string; icon: ReactNode; href?: string }) {
+  const content = <><div className="stat-icon">{icon}</div><div><span>{label}</span><strong>{value}</strong><small>{note}</small></div></>;
+  return href ? <Link href={href} className="stat-card stat-card-link" aria-label={`${label}: ${value}. Open details`}>{content}</Link> : <article className="stat-card">{content}</article>;
 }
 
 export function StatusPill({ value }: { value: string }) {

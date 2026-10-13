@@ -13,17 +13,17 @@ export default function AdminLeaveNotification() {
       className="button button-secondary admin-leave-notification"
       aria-label={
         error
-          ? "Leave notifications unavailable. Open leave management."
-          : `${data?.totalCount ?? "Loading"} pending leave requests`
+          ? "Request notifications unavailable. Open request management."
+          : `${data?.totalCount ?? "Loading"} pending employee requests`
       }
       title={
         error
           ? "Could not refresh leave notifications"
-          : "Leave requests awaiting your review"
+          : "Employee requests awaiting your review"
       }
     >
       <Bell size={18} />
-      <span>Leave requests</span>
+      <span>Requests</span>
       <strong aria-live="polite">
         {error ? "!" : (data?.totalCount ?? "…")}
       </strong>

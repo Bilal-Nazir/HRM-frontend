@@ -18,6 +18,7 @@ export default function LeavePage() {
   const [types, setTypes] = useState<LeaveType[]>([]);
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [pending, setPending] = useState<LeaveRequest[]>([]);
+  const [balances, setBalances] = useState<{ name: string; allowanceDays: number; usedDays: number; pendingDays: number; remainingDays: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
   const [error, setError] = useState("");
@@ -25,6 +26,7 @@ export default function LeavePage() {
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
+    requestKind: "leave",
     leaveTypeId: "",
     startDate: "",
     endDate: "",
@@ -43,6 +45,7 @@ export default function LeavePage() {
       getSession()?.permissions.some((p) => p === "*" || p === "leave.approve")
         ? api.get<{ leaveRequests: LeaveRequest[] }>("/leave/requests/pending")
         : Promise.resolve({ leaveRequests: [] as LeaveRequest[] }),
+      api.get<{ leaveBalances: typeof balances }>("/leave/balances"),
     ]);
     if (results[0].status === "fulfilled")
       setTypes(results[0].value.leaveTypes || []);
@@ -54,6 +57,7 @@ export default function LeavePage() {
       setRequests(results[1].value.leaveRequests || []);
     if (results[2].status === "fulfilled")
       setPending(results[2].value.leaveRequests || []);
+    if (results[3].status === "fulfilled") setBalances(results[3].value.leaveBalances || []);
     if (results[1].status === "rejected")
       setError(
         results[1].reason instanceof ApiError
@@ -74,10 +78,10 @@ export default function LeavePage() {
     try {
       await api.post("/leave/requests", form);
       setModal(false);
-      setForm({ leaveTypeId: "", startDate: "", endDate: "", reason: "" });
+      setForm({ requestKind: "leave", leaveTypeId: "", startDate: "", endDate: "", reason: "" });
       await load();
       setSuccess(
-        "Leave request submitted. Your admin has been notified in their review queue.",
+        "Request submitted. Your admin can review it in their approval queue.",
       );
     } catch (err) {
       setError(errorMessage(err));
@@ -99,20 +103,21 @@ export default function LeavePage() {
 
   const typeName = (id: string) =>
     types.find((type) => type.id === id)?.name || "Leave";
+  const requestName = (item: LeaveRequest) => item.requestKind === "work_from_home" ? "Work from Home" : item.leaveTypeName || typeName(item.leaveTypeId || "");
 
   return (
     <AppShell>
       <PageHeader
-        eyebrow="Time away"
-        title="Leave management"
-        description="Plan time off, follow request progress, and review team leave."
+        eyebrow="Time away and flexible work"
+        title="Requests"
+        description="Request leave or work from home and follow approval progress."
         action={
           <button
             className="button button-primary"
             onClick={() => setModal(true)}
           >
             <Plus size={17} />
-            Request leave
+            New request
           </button>
         }
       />
@@ -125,6 +130,7 @@ export default function LeavePage() {
           {success}
         </div>
       )}
+      <section className="card" style={{ marginBottom: 20 }}><div className="card-header"><div><h2>Leave balance</h2><p>Annual allowance less approved leave; pending requests are shown separately.</p></div></div><div className="leave-balance-grid">{balances.map((balance) => <div key={balance.name}><strong>{balance.remainingDays} days</strong><span>{balance.name} remaining</span><small>{balance.usedDays} used · {balance.pendingDays} pending · {balance.allowanceDays} annual</small></div>)}{!balances.length && <p>No leave allowances configured yet.</p>}</div></section>
       {pending.length > 0 && (
         <section className="card" style={{ marginBottom: 20 }}>
           <div className="card-header">
@@ -151,7 +157,7 @@ export default function LeavePage() {
                 {pending.map((item) => (
                   <tr key={item.id}>
                     <td>{item.employeeId}</td>
-                    <td>{typeName(item.leaveTypeId)}</td>
+                    <td>{requestName(item)}</td>
                     <td>
                       {new Date(item.startDate).toLocaleDateString()} –{" "}
                       {new Date(item.endDate).toLocaleDateString()}
@@ -212,7 +218,7 @@ export default function LeavePage() {
                 {requests.map((item) => (
                   <tr key={item.id}>
                     <td>
-                      <strong>{typeName(item.leaveTypeId)}</strong>
+                      <strong>{requestName(item)}</strong>
                     </td>
                     <td>{new Date(item.startDate).toLocaleDateString()}</td>
                     <td>{new Date(item.endDate).toLocaleDateString()}</td>
@@ -233,8 +239,8 @@ export default function LeavePage() {
           <form className="modal" onSubmit={submit}>
             <div className="modal-header">
               <div>
-                <h2>Request leave</h2>
-                <p>Choose the leave type and dates for your request.</p>
+                <h2>New request</h2>
+                <p>Choose leave or work from home, then select your dates.</p>
               </div>
               <button
                 type="button"
@@ -264,6 +270,8 @@ export default function LeavePage() {
                 </button>
               )}
               <div className="form-grid">
+                <div className="field full"><label htmlFor="request-kind">Request type</label><select id="request-kind" value={form.requestKind} onChange={(e) => setForm({ ...form, requestKind: e.target.value, leaveTypeId: "" })}><option value="leave">Leave</option><option value="work_from_home">Work from Home</option></select></div>
+                {form.requestKind === "leave" && (
                 <div className="field full">
                   <label htmlFor="leave-type">Leave type</label>
                   <select
@@ -286,6 +294,7 @@ export default function LeavePage() {
                     ))}
                   </select>
                 </div>
+                )}
                 <div className="field">
                   <label htmlFor="leave-start">Start date</label>
                   <input

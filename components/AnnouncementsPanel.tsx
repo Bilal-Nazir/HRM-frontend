@@ -6,6 +6,7 @@ import { Megaphone, ArrowUpRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/workspace";
 import { AnnouncementList } from "@/types/workspace";
+import { getSession } from "@/lib/auth";
 
 export default function AnnouncementsPanel({
   admin = false,
@@ -19,6 +20,11 @@ export default function AnnouncementsPanel({
   const [page, setPage] = useState(1);
   const [retry, setRetry] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [readKeys, setReadKeys] = useState<string[]>([]);
+  useEffect(() => { const key = `hrm_read_announcements_${getSession()?.userId || "guest"}`; try { setReadKeys(JSON.parse(localStorage.getItem(key) || "[]")); } catch { setReadKeys([]); } }, []);
+  useEffect(() => { const timer = setInterval(() => setRetry((value) => value + 1), 30000); return () => clearInterval(timer); }, []);
+  const markRead = (key: string) => { const next = [...new Set([...readKeys, key])]; setReadKeys(next); localStorage.setItem(`hrm_read_announcements_${getSession()?.userId || "guest"}`, JSON.stringify(next)); };
+  const unread = data?.announcements.filter((item) => !readKeys.includes(`${item.id}:${item.updatedAt}`)).length || 0;
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -49,7 +55,7 @@ export default function AnnouncementsPanel({
           </span>
           <div>
             <span className="section-kicker">From your admin</span>
-            <h2>Announcements</h2>
+            <h2>Announcements {!admin && unread > 0 && <span className="announcement-new-count" aria-label={`${unread} new announcements`}>{unread} new</span>}</h2>
           </div>
         </div>
         {compact && (
@@ -86,7 +92,7 @@ export default function AnnouncementsPanel({
           </div>
         ) : (
           data.announcements.map((item) => (
-            <article className="announcement-item" key={item.id}>
+            <article className={`announcement-item ${!admin && !readKeys.includes(`${item.id}:${item.updatedAt}`) ? "announcement-unread" : ""}`} key={item.id}>
               <div className="announcement-title">
                 <h3>{item.title}</h3>
                 <time dateTime={item.createdAt}>
@@ -105,6 +111,7 @@ export default function AnnouncementsPanel({
                   item.content
                 )}
               </div>
+              {!admin && !readKeys.includes(`${item.id}:${item.updatedAt}`) && <button type="button" className="announcement-read-button" onClick={() => markRead(`${item.id}:${item.updatedAt}`)}>Mark as read</button>}
             </article>
           ))
         )}

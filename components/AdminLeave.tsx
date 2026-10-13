@@ -29,7 +29,7 @@ export default function AdminLeave() {
     setSuccess("");
     try {
       await api.patch(`/leave/requests/${id}/review`, { status: decision });
-      setSuccess(`Leave request ${decision}.`);
+      setSuccess(`Request ${decision}.`);
       refresh();
       window.dispatchEvent(new Event("focus"));
     } catch (err) {
@@ -43,9 +43,9 @@ export default function AdminLeave() {
     <section className="card">
       <div className="card-header">
         <div>
-          <h2>Employee leave requests</h2>
+          <h2>Employee requests</h2>
           <p>
-            New requests appear here automatically · refreshes every 30 seconds
+            Leave and Work-from-Home requests appear here automatically · refreshes every 30 seconds
           </p>
         </div>
         <div className="admin-table-actions">
@@ -82,7 +82,7 @@ export default function AdminLeave() {
         (!data.leaveRequests.length ? (
           <EmptyState
             title="No requests to show"
-            description="Employee leave requests will appear here for review."
+            description="Employee requests will appear here for review."
           />
         ) : (
           <div className="table-wrap">
@@ -90,7 +90,7 @@ export default function AdminLeave() {
               <thead>
                 <tr>
                   <th>Employee</th>
-                  <th>Leave type</th>
+                  <th>Request type</th>
                   <th>Dates</th>
                   <th>Days</th>
                   <th>Reason</th>

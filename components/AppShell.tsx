@@ -14,6 +14,7 @@ import {
   FileText,
   LockKeyhole,
   X,
+  ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -22,12 +23,13 @@ import { clearSession, getSession, SessionUser } from "@/lib/auth";
 import { Employee } from "@/types";
 import { useClientClock } from "@/lib/useClientClock";
 import AdminLeaveNotification from "@/components/AdminLeaveNotification";
+import { api } from "@/lib/api";
 
 const navigation = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/employees", label: "Employees", icon: Users },
   { href: "/attendance", label: "Attendance", icon: Clock3 },
-  { href: "/leave", label: "Leave", icon: CalendarDays },
+  { href: "/leave", label: "Requests", icon: CalendarDays },
   { href: "/announcements", label: "Announcements", icon: Megaphone },
   { href: "/terms", label: "Terms & Conditions", icon: FileText },
   { href: "/settings/password", label: "Change password", icon: LockKeyhole },
@@ -46,6 +48,11 @@ export default function AppShell({
   const router = useRouter();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profile, setProfile] = useState<Employee | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [employeeResults, setEmployeeResults] = useState<Employee[]>([]);
   const now = useClientClock();
 
   useEffect(() => {
@@ -55,7 +62,15 @@ export default function AppShell({
       return;
     }
     setUser(session);
+    api.get<{ employee: Employee }>("/employee/me").then((result) => setProfile(result.employee)).catch(() => setProfile(null));
   }, [isAdmin, router]);
+
+  useEffect(() => {
+    if (!query.trim() || !isAdmin) { setEmployeeResults([]); return; }
+    let cancelled = false;
+    const timer = setTimeout(() => api.get<{ employees: Employee[] }>(`/employee/view?size=5&search=${encodeURIComponent(query.trim())}`).then((result) => { if (!cancelled) setEmployeeResults(result.employees || []); }).catch(() => { if (!cancelled) setEmployeeResults([]); }), 250);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [query, isAdmin]);
 
   const logout = () => {
     clearSession();
@@ -114,26 +129,27 @@ export default function AppShell({
         </nav>
 
         <div className="sidebar-footer">
-          <div className="profile-card">
+          <button className="profile-card profile-trigger" type="button" aria-expanded={profileOpen} onClick={() => setProfileOpen((value) => !value)}>
             <div className="avatar">
-              {employee
-                ? `${employee.firstName?.[0] || ""}${employee.lastName?.[0] || ""}`.toUpperCase()
+              {(employee || profile)
+                ? `${(employee || profile)?.firstName?.[0] || ""}${(employee || profile)?.lastName?.[0] || ""}`.toUpperCase()
                 : user?.loginId?.slice(0, 2).toUpperCase() || "HR"}
             </div>
             <div className="profile-copy">
               <strong>
-                {employee
-                  ? `${employee.firstName} ${employee.lastName}`
+                {(employee || profile)
+                  ? `${(employee || profile)?.firstName} ${(employee || profile)?.lastName}`
                   : user?.loginId || "Loading..."}
               </strong>
               <span>
                 {isAdmin
                   ? "Platform administrator"
-                  : employee?.jobTitle || "Employee workspace"}
+                  : (employee || profile)?.jobTitle || "Employee workspace"}
               </span>
             </div>
             <ChevronDown size={16} />
-          </div>
+          </button>
+          {profileOpen && <div className="profile-menu"><span>{profile?.workEmail || user?.loginId}</span><Link href={`${routePrefix}/settings/password`} onClick={() => setProfileOpen(false)}>Change password</Link><button type="button" onClick={logout}>Sign out</button></div>}
           <button className="logout-button" onClick={logout}>
             <LogOut size={17} /> Sign out
           </button>
@@ -150,6 +166,7 @@ export default function AppShell({
 
       <main className="main-area">
         <header className="topbar">
+          <button className="icon-button back-button" aria-label="Go back" title="Go back" onClick={() => window.history.length > 1 ? router.back() : router.push(`${routePrefix}/dashboard`)}><ArrowLeft size={19} /></button>
           <button
             className="icon-button mobile-only"
             onClick={() => setMobileOpen(true)}
@@ -160,8 +177,17 @@ export default function AppShell({
             <Search size={17} />
             <input
               aria-label="Search"
-              placeholder="Search employees, requests..."
+              placeholder={isAdmin ? "Search pages or employees..." : "Search pages..."}
+              value={query}
+              onFocus={() => setSearchOpen(true)}
+              onChange={(event) => { setQuery(event.target.value); setSearchOpen(true); }}
+              onKeyDown={(event) => { if (event.key === "Escape") setSearchOpen(false); if (event.key === "Enter") { const match = navigation.find((item) => item.label.toLowerCase().includes(query.trim().toLowerCase())); if (match && query.trim()) { router.push(`${routePrefix}${match.href}`); setSearchOpen(false); } } }}
             />
+            {searchOpen && query.trim() && <div className="search-results" role="listbox">
+              {navigation.filter((item) => item.label.toLowerCase().includes(query.trim().toLowerCase()) && (isAdmin || item.href !== "/employees")).map((item) => <button key={item.href} type="button" onClick={() => { router.push(`${routePrefix}${item.href}`); setSearchOpen(false); setQuery(""); }}>{item.label}<small>Page</small></button>)}
+              {employeeResults.map((item) => <button key={item.id} type="button" onClick={() => { router.push(`/admin/employees?search=${encodeURIComponent(item.employeeCode)}`); setSearchOpen(false); setQuery(""); }}>{item.firstName} {item.lastName}<small>{item.employeeCode}</small></button>)}
+              {!navigation.some((item) => item.label.toLowerCase().includes(query.trim().toLowerCase())) && !employeeResults.length && <span>No matches</span>}
+            </div>}
           </div>
           {isAdmin &&
             user?.permissions.some(

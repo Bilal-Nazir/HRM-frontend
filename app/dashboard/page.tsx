@@ -6,6 +6,7 @@ import AnnouncementsPanel from "@/components/AnnouncementsPanel";
 import AdminAttendance, {
   AttendanceOverview,
 } from "@/components/AdminAttendance";
+import { AttendanceInsights, AttendanceSummary } from "@/components/AttendanceInsights";
 import { EmptyState, ErrorBanner, StatCard, StatusPill } from "@/components/ui";
 import { Employee } from "@/types";
 import { useLiveData } from "@/lib/useLiveData";
@@ -29,6 +30,7 @@ export default function DashboardPage() {
   );
 }
 function AdminDashboard() {
+  const insights = useLiveData<AttendanceSummary>("/attendance/summary?scope=organization");
   const people = useLiveData<{ employees: Employee[] }>(
     "/employee/view?size=5",
   );
@@ -64,38 +66,43 @@ function AdminDashboard() {
       <section className="stats-grid admin-stats">
         <StatCard
           label="Active workforce"
+          href="/admin/employees"
           value={summary?.activeEmployees ?? "—"}
           note="Across your organization"
           icon={<Users size={19} />}
         />
         <StatCard
           label="Present now"
+          href="/admin/attendance?open=true"
           value={summary?.presentNow ?? "—"}
           note="All open attendance sessions"
           icon={<Clock3 size={19} />}
         />
         <StatCard
           label="Pending approvals"
+          href="/admin/leave?status=pending"
           value={pending ?? "—"}
-          note="Employee leave requests"
+          note="Leave and remote-work requests"
           icon={<Palmtree size={19} />}
         />
         <StatCard
           label="Attendance flags"
-          value={summary?.attendanceFlags ?? "—"}
-          note="Open sessions outside office area"
+          href="/admin/attendance?flags=true"
+          value={insights.data ? insights.data.flags.lateCheckIns + insights.data.flags.earlyCheckOuts + insights.data.flags.outsideOfficeArea : summary?.attendanceFlags ?? "—"}
+          note="Late, early, or outside-office sessions"
           icon={<ShieldCheck size={19} />}
         />
       </section>
+      <AttendanceInsights summary={insights.data} />
       {pending !== null && pending !== undefined && pending > 0 && (
         <div className="leave-admin-alert" role="status">
           <Bell size={22} />
           <div>
             <strong>
-              {pending} leave request{pending === 1 ? "" : "s"} awaiting review
+              {pending} employee request{pending === 1 ? "" : "s"} awaiting review
             </strong>
             <p>
-              Employees have requested time off. Review their dates and reasons.
+              Employees have requested leave or remote work. Review their dates and reasons.
             </p>
           </div>
           <Link href="/admin/leave" className="button button-primary">

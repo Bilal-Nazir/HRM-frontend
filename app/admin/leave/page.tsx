@@ -6,9 +6,9 @@ export default function AdminLeavePage() {
   return (
     <AppShell>
       <PageHeader
-        eyebrow="Time away"
-        title="Leave management"
-        description="Review and approve leave requests across your organization."
+        eyebrow="Employee requests"
+        title="Request management"
+        description="Review and approve leave and Work-from-Home requests across your organization."
       />
       <AdminLeave />
     </AppShell>
