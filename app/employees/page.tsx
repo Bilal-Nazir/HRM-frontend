@@ -7,7 +7,7 @@ import { Employee } from "@/types";
 import { Plus, Search, UserPlus, X } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
-const emptyForm = { employeeCode:"", firstName:"", lastName:"", workEmail:"", password:"", jobTitle:"", employmentType:"full-time", phone:"", personalEmail:"", timezone:"", employmentStatus:"active" };
+const emptyForm = { firstName:"", lastName:"", workEmail:"", password:"", jobTitle:"", employmentType:"full-time", phone:"", personalEmail:"", timezone:"", employmentStatus:"active" };
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -32,12 +32,12 @@ export default function EmployeesPage() {
 
   const create = async (event: FormEvent) => {
     event.preventDefault(); setSaving(true); setError(""); setSuccess("");
-    try { if (editing) await api.patch(`/employee/${editing.id}`, { firstName: form.firstName, lastName: form.lastName, workEmail: form.workEmail, jobTitle: form.jobTitle, employmentType: form.employmentType, phone: form.phone, personalEmail: form.personalEmail, timezone: form.timezone, employmentStatus: form.employmentStatus }); else await api.post("/employee/create", { employeeCode: form.employeeCode, firstName: form.firstName, lastName: form.lastName, workEmail: form.workEmail, password: form.password, jobTitle: form.jobTitle, employmentType: form.employmentType, phone: form.phone }); setModal(false); setEditing(null); setForm(emptyForm); await load(); setSuccess(editing ? "Employee profile updated." : "Employee created."); }
+    try { if (editing) await api.patch(`/employee/${editing.id}`, { firstName: form.firstName, lastName: form.lastName, workEmail: form.workEmail, jobTitle: form.jobTitle, employmentType: form.employmentType, phone: form.phone, personalEmail: form.personalEmail, timezone: form.timezone, employmentStatus: form.employmentStatus }); else await api.post("/employee/create", { firstName: form.firstName, lastName: form.lastName, workEmail: form.workEmail, password: form.password, jobTitle: form.jobTitle, employmentType: form.employmentType, phone: form.phone }); setModal(false); setEditing(null); setForm(emptyForm); await load(); setSuccess(editing ? "Employee profile updated." : "Employee created with an automatically generated ID."); }
     catch (err) { setError(err instanceof ApiError ? err.message : "Could not save employee"); }
     finally { setSaving(false); }
   };
 
-  const startEdit = async (employee: Employee) => { setSaving(true); setError(""); setSuccess(""); try { const result = await api.get<{ employee: Employee }>(`/employee/${employee.id}`); const detail = result.employee; setEditing(detail); setForm({ ...emptyForm, employeeCode: detail.employeeCode, firstName: detail.firstName, lastName: detail.lastName, workEmail: detail.workEmail, jobTitle: detail.jobTitle || "", employmentType: detail.employmentType || "full-time", phone: detail.phone || "", personalEmail: detail.personalEmail || "", timezone: detail.timezone || "", employmentStatus: detail.employmentStatus || "active" }); setModal(true); } catch (err) { setError(err instanceof ApiError ? err.message : "Could not load employee profile"); } finally { setSaving(false); } };
+  const startEdit = async (employee: Employee) => { setSaving(true); setError(""); setSuccess(""); try { const result = await api.get<{ employee: Employee }>(`/employee/${employee.id}`); const detail = result.employee; setEditing(detail); setForm({ ...emptyForm, firstName: detail.firstName, lastName: detail.lastName, workEmail: detail.workEmail, jobTitle: detail.jobTitle || "", employmentType: detail.employmentType || "full-time", phone: detail.phone || "", personalEmail: detail.personalEmail || "", timezone: detail.timezone || "", employmentStatus: detail.employmentStatus || "active" }); setModal(true); } catch (err) { setError(err instanceof ApiError ? err.message : "Could not load employee profile"); } finally { setSaving(false); } };
   const archive = async (employee: Employee) => { if (!window.confirm(`Remove ${employee.firstName} ${employee.lastName}? Their login will be disabled and they will leave the directory, but attendance and request history will remain.`)) return; setSaving(true); setError(""); try { await api.delete(`/employee/${employee.id}`); await load(); } catch (err) { setError(err instanceof ApiError ? err.message : "Could not remove employee"); } finally { setSaving(false); } };
 
   return <AppShell>
@@ -52,7 +52,6 @@ export default function EmployeesPage() {
     {modal && <div className="modal-backdrop"><form className="modal" onSubmit={create}><div className="modal-header"><div><h2>{editing ? "Edit employee" : "Add employee"}</h2><p>{editing ? "Update their profile details." : "Create their profile and initial login account."}</p></div><button type="button" className="icon-button" onClick={()=>setModal(false)}><X size={18}/></button></div><div className="modal-body">{error&&<ErrorBanner message={error}/>}<div className="form-grid">
       <div className="field"><label>First name</label><input required value={form.firstName} onChange={e=>setForm({...form,firstName:e.target.value})}/></div>
       <div className="field"><label>Last name</label><input required value={form.lastName} onChange={e=>setForm({...form,lastName:e.target.value})}/></div>
-      <div className="field"><label>Employee ID</label><input required disabled={!!editing} placeholder="EMP-002" value={form.employeeCode} onChange={e=>setForm({...form,employeeCode:e.target.value})}/></div>
       <div className="field"><label>Employment type</label><select value={form.employmentType} onChange={e=>setForm({...form,employmentType:e.target.value})}><option value="full-time">Full-time</option><option value="part-time">Part-time</option><option value="contract">Contract</option><option value="intern">Intern</option></select></div>
       <div className="field full"><label>Work email</label><input type="email" required value={form.workEmail} onChange={e=>setForm({...form,workEmail:e.target.value})}/></div>
       <div className="field"><label>Job title</label><input value={form.jobTitle} onChange={e=>setForm({...form,jobTitle:e.target.value})}/></div>
