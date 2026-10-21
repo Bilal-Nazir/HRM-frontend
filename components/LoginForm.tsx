@@ -45,7 +45,10 @@ export default function LoginForm({
         accessToken: string;
         refreshToken: string;
         user: SessionUser;
-      }>("/auth/login", form);
+      }>("/auth/login", {
+        ...form,
+        portal: adminMode ? "admin" : "employee",
+      });
       saveSession(result.accessToken, result.refreshToken, result.user);
       router.push(adminMode ? "/admin/dashboard" : "/dashboard");
     } catch (err) {

@@ -61,6 +61,13 @@ export default function AppShell({
       router.replace(isAdmin ? "/admin/login" : "/login");
       return;
     }
+    const expectedAccountType = isAdmin ? "admin" : "employee";
+    if (session.accountType !== expectedAccountType) {
+      router.replace(
+        session.accountType === "admin" ? "/admin/dashboard" : "/dashboard",
+      );
+      return;
+    }
     setUser(session);
     api.get<{ employee: Employee }>("/employee/me").then((result) => setProfile(result.employee)).catch(() => setProfile(null));
   }, [isAdmin, router]);

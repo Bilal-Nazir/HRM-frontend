@@ -4,12 +4,14 @@ export type SessionUser = {
   organizationId?: string;
   loginId: string;
   permissions: string[];
+  accountType: "admin" | "employee";
 };
 
 export const saveSession = (accessToken: string, refreshToken: string, user: SessionUser) => {
   localStorage.setItem("hrm_token", accessToken);
   localStorage.setItem("hrm_refresh_token", refreshToken);
   localStorage.setItem("hrm_user", JSON.stringify(user));
+  document.cookie = `hrm_account_type=${user.accountType}; path=/; SameSite=Lax`;
 };
 
 export const updateAccessToken = (accessToken: string) => {
@@ -26,4 +28,5 @@ export const clearSession = () => {
   localStorage.removeItem("hrm_token");
   localStorage.removeItem("hrm_refresh_token");
   localStorage.removeItem("hrm_user");
+  document.cookie = "hrm_account_type=; path=/; Max-Age=0; SameSite=Lax";
 };
