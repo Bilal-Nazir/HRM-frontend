@@ -1,19 +1,29 @@
 /* Employee workspace: the same mint, emerald and navy used at sign-in. */
 .employee-shell .main-area { background:radial-gradient(ellipse at 95% 0,rgba(180,231,212,.2),transparent 42%),#f8faf9; }
 .employee-shell .sidebar { background:linear-gradient(180deg,#fbfdfc,#eef8f3); }
-.employee-welcome { display:flex;justify-content:space-between;align-items:center;gap:24px;padding:10px 0 28px; }
+.employee-welcome { position:relative;overflow:hidden;display:flex;justify-content:space-between;align-items:center;gap:28px;margin-bottom:24px;padding:32px 36px;border:1px solid #d8e9e3;border-radius:24px;background:linear-gradient(115deg,rgba(255,255,255,.96),rgba(232,247,241,.94));box-shadow:var(--shadow); }
+.employee-welcome:after { content:"";position:absolute;right:-60px;top:-80px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(27,169,133,.1),transparent 70%); }
+.employee-welcome-copy { position:relative;z-index:1; }
 .employee-welcome h1 { font-size:clamp(28px,3vw,38px);letter-spacing:-.045em; }
 .greeting-dot { color:#1aa782; }
 .employee-welcome p { margin:10px 0 0;color:#718195;font-size:14px; }
-.employee-welcome .button { flex-shrink:0;background:#fff; }
-.employee-stats { grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-bottom:24px; }
-.employee-stats .stat-card { flex-direction:column;gap:14px;padding:23px 25px;border-color:#e3ece8;box-shadow:0 8px 24px rgba(24,65,55,.035); }
-.employee-stats .stat-card:after { display:none; }
+.employee-status-chip { display:inline-flex;align-items:center;gap:7px;margin-top:16px;padding:6px 13px;border:1px solid #d8e9e3;border-radius:999px;background:#fff;color:#55645d;font-size:11px;font-weight:700; }
+.employee-status-chip i { width:7px;height:7px;border-radius:50%;background:#9aa8a1; }
+.employee-status-chip.is-live { border-color:#bde5d7;background:#e9f8f2;color:#127958; }
+.employee-status-chip.is-live i { background:#1ca989;box-shadow:0 0 0 4px rgba(28,169,137,.16);animation:announcement-pulse 2s ease-in-out infinite; }
+.employee-welcome-clock { position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-end;gap:11px;flex:0 0 auto;text-align:right; }
+.employee-welcome-clock-label { font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#71877e; }
+.employee-welcome-clock strong { font-family:Manrope,sans-serif;font-size:36px;letter-spacing:-.03em;color:var(--ink);font-variant-numeric:tabular-nums; }
+.employee-welcome .dashboard-check-button { min-width:150px; }
+.employee-stats { grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin-bottom:24px; }
+.employee-stats .stat-card { position:relative;overflow:hidden;flex-direction:column;gap:14px;padding:23px 25px;border-color:#e3ece8;background:rgba(255,255,255,.94);box-shadow:0 8px 24px rgba(24,65,55,.035); }
+.employee-stats .stat-card:after { content:"";position:absolute;right:-26px;bottom:-34px;width:82px;height:82px;border-radius:50%;background:rgba(35,174,139,.055); }
 .employee-stats .stat-card strong { margin:7px 0;font-size:clamp(20px,2vw,27px);letter-spacing:-.04em; }
 .employee-stats .stat-card small { font-size:12px;line-height:1.5; }
 .employee-stats .stat-icon { width:42px;height:42px;color:#118e77;background:#e0f3eb; }
 .employee-stats .stat-card:nth-child(2) .stat-icon { background:#edf4f6;color:#426579; }
 .employee-stats .stat-card:nth-child(3) .stat-icon { background:#f4f1e8;color:#827046; }
+.employee-stats .stat-card:nth-child(4) .stat-icon { background:#f0eafb;color:#7254a4; }
 .employee-overview { grid-template-columns:minmax(0,1.65fr) minmax(290px,.85fr);align-items:stretch;gap:22px; }
 .employee-history { box-shadow:0 8px 24px rgba(24,65,55,.035); }
 .employee-history .card-header { padding:23px; }
@@ -32,5 +42,5 @@
 .employee-loading { min-height:260px;display:grid;place-items:center;color:#718195;font-size:13px; }
 .employee-load-error { display:flex;align-items:flex-start;gap:12px;margin-bottom:20px; }
 .employee-load-error .error-banner { flex:1;margin:0; }
-@media(max-width:1100px) { .employee-overview { grid-template-columns:1fr; }.employee-day-card h2,.employee-day-card>p { max-width:none; } }
-@media(max-width:760px) { .employee-welcome { align-items:flex-start;flex-direction:column;gap:18px;padding-top:0; }.employee-stats { grid-template-columns:1fr;gap:12px; }.employee-stats .stat-card { flex-direction:row;align-items:center;padding:20px; }.employee-history .card-header { flex-wrap:wrap; }.employee-day-card { padding:24px; } }
+@media(max-width:1100px) { .employee-overview { grid-template-columns:1fr; }.employee-day-card h2,.employee-day-card>p { max-width:none; }.employee-stats { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:760px) { .employee-welcome { align-items:flex-start;flex-direction:column;gap:18px;padding:24px; }.employee-welcome-clock { align-items:flex-start;text-align:left;width:100%; }.employee-stats { grid-template-columns:1fr;gap:12px; }.employee-stats .stat-card { flex-direction:row;align-items:center;padding:20px; }.employee-history .card-header { flex-wrap:wrap; }.employee-day-card { padding:24px; } }

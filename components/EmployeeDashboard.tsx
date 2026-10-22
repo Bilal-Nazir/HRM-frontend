@@ -20,6 +20,7 @@ import { EmptyState, ErrorBanner, StatCard, StatusPill } from "@/components/ui";
 import { api } from "@/lib/api";
 import { Attendance, Employee } from "@/types";
 import { AttendanceInsights, AttendanceSummary, AttendanceLocation } from "@/components/AttendanceInsights";
+import DashboardEngagement from "@/components/DashboardEngagement";
 
 function sessionDuration(session: Attendance | undefined, now: Date | null) {
   if (!session || !now) return "—";
@@ -158,16 +159,23 @@ export default function EmployeeDashboard() {
       )}
       <div className="employee-dashboard" aria-busy={loading}>
         <header className="employee-welcome">
-          <div>
+          <div className="employee-welcome-copy">
             <span className="eyebrow">Your workspace</span>
             <h1>
               {employee?.firstName
-                ? `Good day, ${employee.firstName}`
+                ? `${now ? (now.getHours() < 12 ? "Good morning" : now.getHours() < 17 ? "Good afternoon" : "Good evening") : "Welcome back"}, ${employee.firstName}`
                 : "Welcome back"}
               <span className="greeting-dot">.</span>
             </h1>
             <p>Your time, your leave, your day. All in one place.</p>
-            <p className="welcome-clock" aria-label="Current local time">{now ? now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—"}</p>
+            <span className={`employee-status-chip ${open ? "is-live" : ""}`}>
+              <i />
+              {sessionState}
+            </span>
+          </div>
+          <div className="employee-welcome-clock">
+            <span className="employee-welcome-clock-label">Local time</span>
+            <strong aria-label="Current local time">{now ? now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—"}</strong>
             <button
               type="button"
               className="button button-primary dashboard-check-button"
@@ -183,6 +191,8 @@ export default function EmployeeDashboard() {
             </button>
           </div>
         </header>
+
+        <DashboardEngagement audience="employee" />
 
         {actionError && (
           <div role="alert">

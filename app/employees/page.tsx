@@ -5,12 +5,16 @@ import { EmptyState, ErrorBanner, PageHeader, StatusPill } from "@/components/ui
 import { api, ApiError } from "@/lib/api";
 import { Employee } from "@/types";
 import { Plus, Search, UserPlus, X } from "lucide-react";
+import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
 const emptyForm = { firstName:"", lastName:"", workEmail:"", password:"", jobTitle:"", employmentType:"full-time", phone:"", personalEmail:"", timezone:"", employmentStatus:"active" };
 
+const statusFilters = ["all", "active", "invited", "suspended", "terminated"] as const;
+
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [statusFilter, setStatusFilter] = useState<(typeof statusFilters)[number]>("all");
   const [search, setSearch] = useState("");
   useEffect(() => { setSearch(new URLSearchParams(window.location.search).get("search") || ""); }, []);
   const [loading, setLoading] = useState(true);
@@ -40,13 +44,16 @@ export default function EmployeesPage() {
   const startEdit = async (employee: Employee) => { setSaving(true); setError(""); setSuccess(""); try { const result = await api.get<{ employee: Employee }>(`/employee/${employee.id}`); const detail = result.employee; setEditing(detail); setForm({ ...emptyForm, firstName: detail.firstName, lastName: detail.lastName, workEmail: detail.workEmail, jobTitle: detail.jobTitle || "", employmentType: detail.employmentType || "full-time", phone: detail.phone || "", personalEmail: detail.personalEmail || "", timezone: detail.timezone || "", employmentStatus: detail.employmentStatus || "active" }); setModal(true); } catch (err) { setError(err instanceof ApiError ? err.message : "Could not load employee profile"); } finally { setSaving(false); } };
   const archive = async (employee: Employee) => { if (!window.confirm(`Remove ${employee.firstName} ${employee.lastName}? Their login will be disabled and they will leave the directory, but attendance and request history will remain.`)) return; setSaving(true); setError(""); try { await api.delete(`/employee/${employee.id}`); await load(); } catch (err) { setError(err instanceof ApiError ? err.message : "Could not remove employee"); } finally { setSaving(false); } };
 
+  const visibleEmployees = statusFilter === "all" ? employees : employees.filter(e => e.employmentStatus === statusFilter);
+
   return <AppShell>
     <PageHeader eyebrow="People directory" title="Employees" description="Manage employee records, access, and employment status in one place." action={<button className="button button-primary" onClick={()=>{setEditing(null);setForm(emptyForm);setModal(true);}}><Plus size={17}/>Add employee</button>} />
     {error && !modal && <ErrorBanner message={error}/>} {success && <div className="success-banner" role="status">{success}</div>}
     <div className="toolbar"><div className="field" style={{position:"relative"}}><Search size={16} style={{position:"absolute",left:12,top:13,color:"#819088"}}/><input style={{paddingLeft:38}} placeholder="Search name, email or employee code" value={search} onChange={e=>setSearch(e.target.value)}/></div></div>
+    <div className="filter-chips">{statusFilters.map(status=><button key={status} type="button" className={statusFilter===status?"active":""} onClick={()=>setStatusFilter(status)} style={{textTransform:"capitalize"}}>{status}{status!=="all"?` (${employees.filter(e=>e.employmentStatus===status).length})`:` (${employees.length})`}</button>)}</div>
     <section className="card">
       {loading && <div className="loading-line"/>}
-      {!loading && employees.length===0 ? <EmptyState title="No employees found" description="Add your first employee or adjust the current search."/> : <div className="table-wrap"><table><thead><tr><th>Employee</th><th>Employee ID</th><th>Role / title</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead><tbody>{employees.map(employee=><tr key={employee.id}><td><div className="person-cell"><div className="avatar">{employee.firstName[0]}{employee.lastName[0]}</div><div><strong>{employee.firstName} {employee.lastName}</strong><span>{employee.workEmail}</span></div></div></td><td>{employee.employeeCode}</td><td>{employee.jobTitle || "—"}</td><td style={{textTransform:"capitalize"}}>{employee.employmentType || "—"}</td><td><StatusPill value={employee.employmentStatus}/></td><td><div className="admin-table-actions"><button className="button button-secondary" disabled={saving} onClick={()=>startEdit(employee)}>Edit</button><button className="button button-secondary" disabled={saving} onClick={()=>void archive(employee)}>Delete</button></div></td></tr>)}</tbody></table></div>}
+      {!loading && visibleEmployees.length===0 ? <EmptyState title="No employees found" description="Add your first employee or adjust the current search and filters."/> : <div className="table-wrap"><table><thead><tr><th>Employee</th><th>Employee ID</th><th>Role / title</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead><tbody>{visibleEmployees.map(employee=><tr key={employee.id}><td><div className="person-cell"><div className="avatar">{employee.firstName[0]}{employee.lastName[0]}</div><div><Link href={`/admin/employees/${employee.id}`}><strong>{employee.firstName} {employee.lastName}</strong></Link><span>{employee.workEmail}</span></div></div></td><td>{employee.employeeCode}</td><td>{employee.jobTitle || "—"}</td><td style={{textTransform:"capitalize"}}>{employee.employmentType || "—"}</td><td><StatusPill value={employee.employmentStatus}/></td><td><div className="admin-table-actions"><Link className="button button-secondary" href={`/admin/employees/${employee.id}`}>Profile</Link><button className="button button-secondary" disabled={saving} onClick={()=>startEdit(employee)}>Edit</button><button className="button button-secondary" disabled={saving} onClick={()=>void archive(employee)}>Delete</button></div></td></tr>)}</tbody></table></div>}
     </section>
 
     {modal && <div className="modal-backdrop"><form className="modal" onSubmit={create}><div className="modal-header"><div><h2>{editing ? "Edit employee" : "Add employee"}</h2><p>{editing ? "Update their profile details." : "Create their profile and initial login account."}</p></div><button type="button" className="icon-button" onClick={()=>setModal(false)}><X size={18}/></button></div><div className="modal-body">{error&&<ErrorBanner message={error}/>}<div className="form-grid">

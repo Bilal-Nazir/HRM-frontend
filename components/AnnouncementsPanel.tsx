@@ -139,7 +139,7 @@ export default function AnnouncementsPanel({
       )}
       <div className="announcement-footer">
         <Link href={admin ? "/admin/terms" : "/terms"}>
-          Terms &amp; Conditions <ArrowUpRight size={14} />
+          Company Policies <ArrowUpRight size={14} />
         </Link>
       </div>
     </section>

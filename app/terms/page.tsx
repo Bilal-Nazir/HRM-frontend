@@ -21,7 +21,7 @@ export default function TermsPage() {
   const [success, setSuccess] = useState("");
   const [reload, setReload] = useState(0);
   const [form, setForm] = useState({
-    title: "Terms & Conditions",
+    title: "Company Policies",
     content: "",
   });
   useEffect(() => {
@@ -57,7 +57,7 @@ export default function TermsPage() {
       setTerms(result.terms);
       setEditing(false);
       setSuccess(
-        "Terms published. All employees in your organization can read them.",
+        "Company policies published. All employees in your organization can read them.",
       );
     } catch (err) {
       setError(errorMessage(err));
@@ -69,7 +69,7 @@ export default function TermsPage() {
     <AppShell>
       <PageHeader
         eyebrow="Company policies"
-        title="Terms & Conditions"
+        title="Company Policies"
         description="Your organization’s guidelines, in one place."
         action={
           allowed &&
@@ -83,7 +83,7 @@ export default function TermsPage() {
               }}
             >
               <Pencil size={16} />
-              {terms ? "Edit terms" : "Add terms"}
+              {terms ? "Edit policies" : "Add policies"}
             </button>
           )
         }
@@ -107,16 +107,18 @@ export default function TermsPage() {
         </div>
       )}
       {loading ? (
-        <p role="status">Loading terms…</p>
+        <p role="status">Loading company policies…</p>
       ) : editing ? (
         <form className="card content-editor" onSubmit={submit}>
           <div className="card-header">
-            <h2>Edit Terms &amp; Conditions</h2>
-            <FileText size={22} />
+            <div className="panel-icon-header">
+              <span className="panel-icon"><FileText size={20} /></span>
+              <h2>Edit Company Policies</h2>
+            </div>
           </div>
           <fieldset disabled={saving} className="content-fields">
             <p className="content-note">
-              Saving publishes these terms immediately to all employees.
+              Saving publishes these policies immediately to all employees.
             </p>
             <div className="field">
               <label htmlFor="terms-title">Title</label>
@@ -129,7 +131,7 @@ export default function TermsPage() {
               />
             </div>
             <div className="field">
-              <label htmlFor="terms-content">Terms &amp; Conditions</label>
+              <label htmlFor="terms-content">Company Policies</label>
               <textarea
                 id="terms-content"
                 required
@@ -149,14 +151,14 @@ export default function TermsPage() {
                   setForm(
                     terms
                       ? { title: terms.title, content: terms.content }
-                      : { title: "Terms & Conditions", content: "" },
+                      : { title: "Company Policies", content: "" },
                   );
                 }}
               >
                 Cancel
               </button>
               <button className="button button-primary">
-                {saving ? "Publishing…" : "Publish terms"}
+                {saving ? "Publishing…" : "Publish policies"}
               </button>
             </div>
           </fieldset>
@@ -167,14 +169,16 @@ export default function TermsPage() {
             {terms ? (
               <>
                 <div className="card-header">
-                  <div>
-                    <h2>{terms.title}</h2>
-                    <p>
-                      Last updated{" "}
-                      {new Date(terms.updatedAt).toLocaleDateString()}
-                    </p>
+                  <div className="panel-icon-header">
+                    <span className="panel-icon"><FileText size={20} /></span>
+                    <div>
+                      <h2>{terms.title}</h2>
+                      <p>
+                        Last updated{" "}
+                        {new Date(terms.updatedAt).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
-                  <FileText size={22} />
                 </div>
                 <div className="content-padding content-prose terms-copy">
                   {terms.content}
@@ -182,11 +186,11 @@ export default function TermsPage() {
               </>
             ) : (
               <EmptyState
-                title="No terms published yet"
+                title="No company policies published yet"
                 description={
                   allowed
-                    ? "Add your organization’s terms for employees to read."
-                    : "Your administrator has not published Terms & Conditions yet."
+                    ? "Add your organization’s policies for employees to read."
+                    : "Your administrator has not published company policies yet."
                 }
               />
             )}

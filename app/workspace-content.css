@@ -188,10 +188,9 @@
   padding-top: 16px;
 }
 .employee-welcome .button.dashboard-check-button {
-  margin-top: 20px;
   background: linear-gradient(105deg, #118e77, #22ae88);
   color: white;
-  min-width: 142px;
+  box-shadow: 0 10px 22px rgba(18, 151, 120, 0.22);
 }
 @media (max-width: 640px) {
   .content-fields,
@@ -307,7 +306,6 @@
 .attendance-summary-copy i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 7px; }
 .attendance-summary-copy small { color: #6d8097; margin-top: 7px; }
 .attendance-flags { display: block; color: #a65a35; text-transform: capitalize; }
-.welcome-clock { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; color: #159b80; margin: 14px 0; }
 .leave-balance-grid { display: flex; gap: 16px; flex-wrap: wrap; padding: 24px; }
 .leave-balance-grid > div { background: #f1f9f6; border: 1px solid #dbece5; border-radius: 16px; padding: 18px; min-width: 180px; display: flex; flex-direction: column; gap: 5px; }
 .leave-balance-grid strong { color: #152c4d; font-size: 24px; }

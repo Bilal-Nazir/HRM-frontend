@@ -156,7 +156,15 @@ export default function LeavePage() {
               <tbody>
                 {pending.map((item) => (
                   <tr key={item.id}>
-                    <td>{item.employeeId}</td>
+                    <td>
+                      <div className="person-cell">
+                        <div className="avatar">{(item.employee?.name || "").trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "--"}</div>
+                        <div>
+                          <strong>{item.employee?.name || "Employee"}</strong>
+                          <span>{item.employee?.employeeCode}</span>
+                        </div>
+                      </div>
+                    </td>
                     <td>{requestName(item)}</td>
                     <td>
                       {new Date(item.startDate).toLocaleDateString()} –{" "}

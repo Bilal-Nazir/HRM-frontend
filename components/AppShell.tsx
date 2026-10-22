@@ -10,11 +10,13 @@ import {
   Menu,
   Search,
   Users,
+  UserRound,
   Megaphone,
   FileText,
   LockKeyhole,
   X,
   ArrowLeft,
+  Palette,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -31,7 +33,9 @@ const navigation = [
   { href: "/attendance", label: "Attendance", icon: Clock3 },
   { href: "/leave", label: "Requests", icon: CalendarDays },
   { href: "/announcements", label: "Announcements", icon: Megaphone },
-  { href: "/terms", label: "Terms & Conditions", icon: FileText },
+  { href: "/terms", label: "Company Policies", icon: FileText },
+  { href: "/settings/profile", label: "Profile settings", icon: UserRound },
+  { href: "/settings/theme", label: "Appearance", icon: Palette },
   { href: "/settings/password", label: "Change password", icon: LockKeyhole },
 ];
 
@@ -110,12 +114,13 @@ export default function AppShell({
           {navigation
             .filter(
               (item) =>
-                item.href !== "/employees" ||
-                isAdmin ||
-                user?.permissions?.some(
-                  (permission) =>
-                    permission === "*" || permission === "employee.read.all",
-                ),
+                (item.href !== "/settings/profile" || isAdmin) &&
+                (item.href !== "/employees" ||
+                  isAdmin ||
+                  user?.permissions?.some(
+                    (permission) =>
+                      permission === "*" || permission === "employee.read.all",
+                  )),
             )
             .map(({ href, label, icon: Icon }) => {
               const resolvedHref = `${routePrefix}${href}`;
@@ -156,7 +161,7 @@ export default function AppShell({
             </div>
             <ChevronDown size={16} />
           </button>
-          {profileOpen && <div className="profile-menu"><span>{profile?.workEmail || user?.loginId}</span><Link href={`${routePrefix}/settings/password`} onClick={() => setProfileOpen(false)}>Change password</Link><button type="button" onClick={logout}>Sign out</button></div>}
+          {profileOpen && <div className="profile-menu"><span>{profile?.workEmail || user?.loginId}</span>{isAdmin && <Link href="/admin/settings/profile" onClick={() => setProfileOpen(false)}>Profile settings</Link>}<Link href={`${routePrefix}/settings/theme`} onClick={() => setProfileOpen(false)}>Appearance</Link><Link href={`${routePrefix}/settings/password`} onClick={() => setProfileOpen(false)}>Change password</Link><button type="button" onClick={logout}>Sign out</button></div>}
           <button className="logout-button" onClick={logout}>
             <LogOut size={17} /> Sign out
           </button>

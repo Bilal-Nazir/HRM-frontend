@@ -11,11 +11,21 @@ export type Employee = {
   employmentStatus: string;
   departmentId?: string;
   employmentType?: string;
+  joinDate?: string;
+  createdAt?: string;
+};
+
+export type Department = {
+  id: string;
+  name: string;
+  code?: string;
+  status: string;
 };
 
 export type Attendance = {
   employee?: { name: string; employeeCode: string } | null;
   id: string;
+  employeeId?: string;
   workDate: string;
   checkInAt: string;
   checkOutAt?: string;
@@ -48,4 +58,5 @@ export type LeaveRequest = {
   totalDays: number;
   reason?: string;
   status: string;
+  createdAt?: string;
 };

@@ -4,6 +4,13 @@ import { Attendance } from "@/types";
 import { useLiveData } from "@/lib/useLiveData";
 import { EmptyState, ErrorBanner, StatusPill } from "@/components/ui";
 import { AttendanceLocation } from "@/components/AttendanceInsights";
+import { Users, Clock3, ShieldAlert } from "lucide-react";
+
+function initials(name?: string) {
+  if (!name) return "--";
+  const parts = name.trim().split(/\s+/);
+  return `${parts[0]?.[0] || ""}${parts[1]?.[0] || ""}`.toUpperCase() || "--";
+}
 
 export type AttendanceOverview = {
   attendances: Attendance[];
@@ -59,6 +66,13 @@ export default function AdminAttendance() {
         <ErrorBanner message={`Could not refresh attendance: ${error}`} />
       )}
       {!data && !error && <p className="panel-message">Loading attendance…</p>}
+      {data && !error && (
+        <div className="mini-stats">
+          <div><span className="mini-icon mini-icon-green"><Clock3 size={16} /></span><div><span>Present now</span><strong>{data.summary.presentNow}</strong></div></div>
+          <div><span className="mini-icon mini-icon-green"><Users size={16} /></span><div><span>Active employees</span><strong>{data.summary.activeEmployees}</strong></div></div>
+          <div><span className="mini-icon mini-icon-amber"><ShieldAlert size={16} /></span><div><span>Flagged sessions</span><strong>{data.summary.attendanceFlags}</strong></div></div>
+        </div>
+      )}
       {data &&
         !error &&
         (!data.attendances.length ? (
@@ -83,11 +97,13 @@ export default function AdminAttendance() {
                 {data.attendances.map((item) => (
                   <tr key={item.id}>
                     <td>
-                      <strong>
-                        {item.employee?.name || "Employee unavailable"}
-                      </strong>
-                      <br />
-                      <small>{item.employee?.employeeCode}</small>
+                      <div className="person-cell">
+                        <div className="avatar">{initials(item.employee?.name)}</div>
+                        <div>
+                          <strong>{item.employee?.name || "Employee unavailable"}</strong>
+                          <span>{item.employee?.employeeCode}</span>
+                        </div>
+                      </div>
                     </td>
                     <td>{new Date(item.checkInAt).toLocaleString()}</td>
                     <td>

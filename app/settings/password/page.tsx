@@ -52,13 +52,15 @@ export default function PasswordPage() {
         title="Change password"
         description="Keep your Be My Admin account secure."
       />
-      <form className="card password-card" onSubmit={submit}>
+      <form className="card password-card centered-page" onSubmit={submit}>
         <div className="card-header">
-          <div>
-            <h2>Your password</h2>
-            <p>You’ll sign in again after updating it.</p>
+          <div className="panel-icon-header">
+            <span className="panel-icon"><LockKeyhole size={20} /></span>
+            <div>
+              <h2>Your password</h2>
+              <p>You’ll sign in again after updating it.</p>
+            </div>
           </div>
-          <LockKeyhole size={22} />
         </div>
         <fieldset disabled={saving} className="content-fields">
           {error && <ErrorBanner message={error} />}

@@ -5,6 +5,12 @@ import { useLiveData } from "@/lib/useLiveData";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/workspace";
 import { EmptyState, ErrorBanner, StatusPill } from "@/components/ui";
+
+function initials(name?: string) {
+  if (!name) return "--";
+  const parts = name.trim().split(/\s+/);
+  return `${parts[0]?.[0] || ""}${parts[1]?.[0] || ""}`.toUpperCase() || "--";
+}
 type LeaveOverview = {
   leaveRequests: LeaveRequest[];
   totalCount: number;
@@ -99,13 +105,15 @@ export default function AdminLeave() {
               </thead>
               <tbody>
                 {data.leaveRequests.map((item) => (
-                  <tr key={item.id}>
+                  <tr key={item.id} className={item.status === "pending" ? "row-pending" : undefined}>
                     <td>
-                      <strong>
-                        {item.employee?.name || "Employee unavailable"}
-                      </strong>
-                      <br />
-                      <small>{item.employee?.employeeCode}</small>
+                      <div className="person-cell">
+                        <div className="avatar">{initials(item.employee?.name)}</div>
+                        <div>
+                          <strong>{item.employee?.name || "Employee unavailable"}</strong>
+                          <span>{item.employee?.employeeCode}</span>
+                        </div>
+                      </div>
                     </td>
                     <td>{item.leaveTypeName}</td>
                     <td>
