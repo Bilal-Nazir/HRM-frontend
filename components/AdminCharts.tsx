@@ -3,8 +3,6 @@
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
   CartesianGrid,
   Cell,
   Pie,
@@ -253,18 +251,21 @@ export function TopEmployeesList({ items }: { items: { employee: { firstName: st
 
 export function DepartmentBars({ data }: { data: { name: string; hours: number }[] }) {
   if (!data.length) return <p className="panel-message">No completed sessions in this period yet.</p>;
+  const max = Math.max(1, ...data.map((item) => item.hours));
+  const total = data.reduce((sum, item) => sum + item.hours, 0);
   return (
-    <div className="chart-area">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 10, right: 16, bottom: 0, left: -16 }}>
-          <CartesianGrid vertical={false} stroke="#e7f0ec" />
-          <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#8699a0" }} axisLine={false} tickLine={false} interval={0} angle={data.length > 4 ? -18 : 0} textAnchor={data.length > 4 ? "end" : "middle"} height={data.length > 4 ? 44 : 24} />
-          <YAxis tick={{ fontSize: 11, fill: "#8699a0" }} axisLine={false} tickLine={false} width={36} />
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          <Tooltip formatter={(value: any) => [`${value}h`, "Hours worked"]} contentStyle={{ borderRadius: 12, border: "1px solid #dfe9e5", fontSize: 12 }} />
-          <Bar dataKey="hours" radius={[8, 8, 0, 0]} fill="#1ca989" maxBarSize={48} />
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="hours-breakdown">
+      <div className="hours-breakdown-total"><span>Completed time</span><strong>{total}h</strong></div>
+      <div className="hours-breakdown-list">
+        {data.map((item, index) => (
+          <div className="hours-breakdown-row" key={item.name}>
+            <span className="hours-rank">{index + 1}</span>
+            <strong title={item.name}>{item.name}</strong>
+            <div className="hours-track" aria-label={`${item.name}: ${item.hours} hours`}><i style={{ width: `${Math.max(5, (item.hours / max) * 100)}%` }} /></div>
+            <b>{item.hours}h</b>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

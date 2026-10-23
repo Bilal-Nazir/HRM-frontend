@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Users,
@@ -12,6 +12,11 @@ import {
   Search,
   Check,
   XCircle,
+  FolderKanban,
+  ListChecks,
+  CircleCheckBig,
+  AlertTriangle,
+  ArrowRight,
 } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import AnnouncementsPanel from "@/components/AnnouncementsPanel";
@@ -51,6 +56,18 @@ import {
 } from "@/lib/adminInsights";
 
 type LeaveOverview = { leaveRequests: LeaveRequest[]; totalCount: number; lastPage: number };
+type ProjectDashboardSummary = {
+  totalProjects: number;
+  activeProjects: number;
+  totalTasks: number;
+  completedTasks: number;
+  inProgressTasks: number;
+  overdueTasks: number;
+  completionRate: number;
+  unassignedTasks: number;
+  statusCounts: Record<string, number>;
+  projects: Array<{ id: string; name: string; key: string; status: string; totalTasks: number; completedTasks: number; overdueTasks: number; progress: number }>;
+};
 
 function toCsv(rows: Record<string, string | number>[]) {
   if (!rows.length) return "";
@@ -78,6 +95,7 @@ export default function AdminHome() {
   const liveSessions = useLiveData<AttendanceOverview>("/attendance/manage?open=true&size=10");
   const pendingLeave = useLiveData<LeaveOverview>("/leave/requests/manage?status=pending&size=6");
   const recentLeave = useLiveData<LeaveOverview>("/leave/requests/manage?size=100");
+  const projectSummary = useLiveData<ProjectDashboardSummary>("/projects/dashboard");
 
   const [deptFilter, setDeptFilter] = useState("all");
   const [tableSearch, setTableSearch] = useState("");
@@ -204,7 +222,8 @@ export default function AdminHome() {
     URL.revokeObjectURL(url);
   };
 
-  const anyError = employeesData.error || departmentsData.error || summaryData.error || liveSessions.error;
+  const anyError = employeesData.error || departmentsData.error || summaryData.error || liveSessions.error || projectSummary.error;
+  const delivery = projectSummary.data;
 
   return (
     <AppShell>
@@ -269,6 +288,46 @@ export default function AdminHome() {
           delta={periodDelta(flaggedTrendData.map((point) => point.value))}
           color="#d9695f"
         />
+      </section>
+
+      <section className="project-dashboard-section">
+        <div className="project-dashboard-heading">
+          <div><span className="section-kicker">Project delivery</span><h2>Work in motion</h2><p>Live progress and delivery risk across every project.</p></div>
+          <Link href="/admin/projects">View all projects <ArrowRight size={15} /></Link>
+        </div>
+        {!delivery ? <div className="loading-line" /> : (
+          <>
+            <div className="project-kpi-grid">
+              <article><i className="project-kpi-icon is-blue"><FolderKanban size={18} /></i><div><span>Active projects</span><strong>{delivery.activeProjects}</strong><small>{delivery.totalProjects} total</small></div></article>
+              <article><i className="project-kpi-icon is-violet"><ListChecks size={18} /></i><div><span>Tasks in progress</span><strong>{delivery.inProgressTasks}</strong><small>{delivery.totalTasks} total tasks</small></div></article>
+              <article><i className="project-kpi-icon is-green"><CircleCheckBig size={18} /></i><div><span>Completion rate</span><strong>{delivery.completionRate}%</strong><small>{delivery.completedTasks} completed</small></div></article>
+              <article><i className="project-kpi-icon is-red"><AlertTriangle size={18} /></i><div><span>Needs attention</span><strong>{delivery.overdueTasks}</strong><small>{delivery.unassignedTasks} unassigned</small></div></article>
+            </div>
+            <div className="project-delivery-grid">
+              <div className="project-progress-list">
+                <h3>Project progress</h3>
+                {delivery.projects.length ? delivery.projects.map((project) => (
+                  <Link href={`/admin/projects/${project.id}`} key={project.id}>
+                    <span className="project-progress-key">{project.key}</span>
+                    <div><strong>{project.name}</strong><small>{project.completedTasks} of {project.totalTasks} tasks complete{project.overdueTasks ? ` · ${project.overdueTasks} overdue` : ""}</small></div>
+                    <span className="project-progress-bar"><i style={{ width: `${project.progress}%` }} /></span>
+                    <b>{project.progress}%</b>
+                  </Link>
+                )) : <p className="panel-message">No projects have been created yet.</p>}
+              </div>
+              <div className="delivery-snapshot">
+                <h3>Delivery snapshot</h3>
+                <div className="delivery-ring" style={{ "--progress": `${delivery.completionRate * 3.6}deg` } as CSSProperties}><div><strong>{delivery.completionRate}%</strong><span>complete</span></div></div>
+                <ul>
+                  <li><i className="is-green" /><span>Completed</span><strong>{delivery.completedTasks}</strong></li>
+                  <li><i className="is-blue" /><span>In progress</span><strong>{delivery.inProgressTasks}</strong></li>
+                  <li><i className="is-amber" /><span>Remaining</span><strong>{Math.max(0, delivery.totalTasks - delivery.completedTasks - delivery.inProgressTasks)}</strong></li>
+                  <li><i className="is-red" /><span>Overdue</span><strong>{delivery.overdueTasks}</strong></li>
+                </ul>
+              </div>
+            </div>
+          </>
+        )}
       </section>
 
       <div className="admin-report-grid admin-report-grid-top">
