@@ -17,6 +17,7 @@ import {
   X,
   ArrowLeft,
   Palette,
+  FolderKanban,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -24,12 +25,13 @@ import { useEffect, useState } from "react";
 import { clearSession, getSession, SessionUser } from "@/lib/auth";
 import { Employee } from "@/types";
 import { useClientClock } from "@/lib/useClientClock";
-import AdminLeaveNotification from "@/components/AdminLeaveNotification";
+import NotificationCenter from "@/components/NotificationCenter";
 import { api } from "@/lib/api";
 
 const navigation = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/employees", label: "Employees", icon: Users },
+  { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/attendance", label: "Attendance", icon: Clock3 },
   { href: "/leave", label: "Requests", icon: CalendarDays },
   { href: "/announcements", label: "Announcements", icon: Megaphone },
@@ -201,11 +203,7 @@ export default function AppShell({
               {!navigation.some((item) => item.label.toLowerCase().includes(query.trim().toLowerCase())) && !employeeResults.length && <span>No matches</span>}
             </div>}
           </div>
-          {isAdmin &&
-            user?.permissions.some(
-              (permission) =>
-                permission === "*" || permission === "leave.manage",
-            ) && <AdminLeaveNotification />}
+          {user && <NotificationCenter isAdmin={isAdmin} />}
           <div className="topbar-date">
             {now
               ? new Intl.DateTimeFormat("en", {

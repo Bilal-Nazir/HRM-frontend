@@ -143,6 +143,17 @@ export default function AdminHome() {
   const health = useMemo(() => (summaryData.data ? attendanceHealth(summaryData.data) : null), [summaryData.data]);
   const deptHours = useMemo(() => hoursByDepartment(daily, employees, departments), [daily, employees, departments]);
   const leaders = useMemo(() => topEmployees(daily, employees), [daily, employees]);
+  const hasDepartmentHours = deptHours.some((item) => item.name !== "Unassigned");
+  const hoursChartData = useMemo(
+    () =>
+      hasDepartmentHours
+        ? deptHours
+        : leaders.map((item) => ({
+            name: `${item.employee.firstName} ${item.employee.lastName}`,
+            hours: item.hours,
+          })),
+    [deptHours, hasDepartmentHours, leaders],
+  );
   const heat = useMemo(() => heatmapGrid(daily, 8), [daily]);
   const maxHeatCount = Math.max(1, ...heat.grid.flat().map((cell) => cell.count));
 
@@ -289,8 +300,8 @@ export default function AdminHome() {
       </div>
 
       <section className="card" style={{ marginBottom: 24 }}>
-        <div className="card-header"><div><span className="section-kicker">This period</span><h2>Hours worked by department</h2><p>Total completed working hours, last 56 days</p></div></div>
-        <div className="card-body"><DepartmentBars data={deptHours} /></div>
+        <div className="card-header"><div><span className="section-kicker">This period</span><h2>{hasDepartmentHours ? "Hours worked by department" : "Hours worked by employee"}</h2><p>{hasDepartmentHours ? "Total completed working hours, last 56 days" : "Department assignments are missing, so completed hours are shown by employee."}</p></div></div>
+        <div className="card-body"><DepartmentBars data={hoursChartData} /></div>
       </section>
 
       <section className="card" style={{ marginBottom: 24 }}>

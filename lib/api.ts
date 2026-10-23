@@ -65,5 +65,11 @@ export const api = {
     apiRequest<T>(path, { method: "POST", body: JSON.stringify(data || {}) }),
   patch: <T>(path: string, data?: unknown) =>
     apiRequest<T>(path, { method: "PATCH", body: JSON.stringify(data || {}) }),
-  delete: <T>(path: string) => apiRequest<T>(path, { method: "DELETE" }),
+  delete: <T>(path: string, data?: unknown) => apiRequest<T>(path, { method: "DELETE", ...(data ? { body: JSON.stringify(data) } : {}) }),
+  download: async (path: string) => {
+    const token = localStorage.getItem("hrm_token");
+    const response = await fetch(`${API_URL}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    if (!response.ok) throw new ApiError("Could not download attachment", response.status);
+    return response.blob();
+  },
 };

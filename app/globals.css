@@ -190,7 +190,7 @@ html,body { background:var(--canvas);color:var(--ink) }
 @media(max-width:760px){.sidebar{width:256px}.main-area{margin-left:0}.page-content{padding:24px 16px}.admin-welcome{padding:24px}.admin-welcome-actions{width:100%;flex-wrap:wrap}.admin-welcome-actions .button{flex:1}.admin-welcome h1{font-size:28px}}
 
 /* Screen polish pass — tables, cards, filters, modals (login untouched) */
-.page-content { animation: pageFadeIn .35s ease both; }
+.page-content { animation: pageFadeIn .35s ease; }
 @keyframes pageFadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
 .card { transition: box-shadow .2s ease, border-color .2s ease; }
 .icon-button { transition:.18s; }

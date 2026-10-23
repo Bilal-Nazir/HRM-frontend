@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const employeePages = [
   "/dashboard",
   "/employees",
+  "/projects",
   "/attendance",
   "/leave",
   "/announcements",
@@ -33,6 +34,7 @@ export const config = {
     "/admin/:path*",
     "/dashboard/:path*",
     "/employees/:path*",
+    "/projects/:path*",
     "/attendance/:path*",
     "/leave/:path*",
     "/announcements/:path*",
