@@ -113,3 +113,11 @@
     width: 100%;
   }
 }
+
+:root[data-theme="obsidian-rose"] .attendance-page .attendance-hero{color:var(--ink);border-color:#343c49;background:#191c24;background-image:none;box-shadow:0 10px 30px rgba(0,0,0,.22)}
+:root[data-theme="obsidian-rose"] .attendance-symbol,:root[data-theme="obsidian-rose"] .attendance-page .attendance-action{color:var(--primary);border-color:#3a4350;background:#232832}
+:root[data-theme="obsidian-rose"] .attendance-page .attendance-hero h2,:root[data-theme="obsidian-rose"] .attendance-page .attendance-action strong{color:var(--ink)}
+:root[data-theme="obsidian-rose"] .attendance-page .attendance-hero p,:root[data-theme="obsidian-rose"] .attendance-page .location-note,:root[data-theme="obsidian-rose"] .attendance-page .attendance-action span{color:var(--muted)}
+:root[data-theme="obsidian-rose"] .attendance-page .attendance-submit{color:#fff;background:var(--primary);background-image:none}
+:root[data-theme="obsidian-rose"] .attendance-page .attendance-submit:hover:not(:disabled){background:var(--primary-hover);background-image:none}
+:root[data-theme="obsidian-rose"] .attendance-page .attendance-history .empty-orbit{border-color:#3a4350;background:#20242e}

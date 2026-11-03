@@ -105,10 +105,10 @@ export default function AdminAttendance() {
                         </div>
                       </div>
                     </td>
-                    <td>{new Date(item.checkInAt).toLocaleString()}</td>
+                    <td>{new Date(item.checkInAt).toLocaleString([], { hour12: true })}</td>
                     <td>
                       {item.checkOutAt
-                        ? new Date(item.checkOutAt).toLocaleString()
+                        ? new Date(item.checkOutAt).toLocaleString([], { hour12: true })
                         : "In progress"}
                     </td>
                     <td><AttendanceLocation record={item} /></td>

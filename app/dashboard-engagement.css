@@ -20,3 +20,13 @@
 .engagement-quote .engagement-refresh:hover { background:#fff }
 @media(max-width:900px){.dashboard-engagement{grid-template-columns:1fr}}
 @media(max-width:560px){.dashboard-engagement article{align-items:flex-start;min-height:120px}.engagement-icon{width:42px;height:42px}.engagement-copy strong{font-size:12px}}
+
+:root[data-theme="obsidian-rose"] .dashboard-engagement article{border-color:#343c49;box-shadow:0 9px 28px rgba(0,0,0,.2)}
+:root[data-theme="obsidian-rose"] .dashboard-engagement article:before{opacity:.06;filter:grayscale(1) brightness(.65)}
+:root[data-theme="obsidian-rose"] .engagement-weather,:root[data-theme="obsidian-rose"] .engagement-quote{color:var(--ink);border-color:#343c49!important;background:#20242e;background-image:none}
+:root[data-theme="obsidian-rose"] .engagement-quote{border-left-color:var(--primary)!important}
+:root[data-theme="obsidian-rose"] .engagement-icon,:root[data-theme="obsidian-rose"] .engagement-refresh,:root[data-theme="obsidian-rose"] .engagement-quote .engagement-refresh{color:var(--primary);border-color:#414958;background:#292e39;box-shadow:none}
+:root[data-theme="obsidian-rose"] .engagement-refresh:hover,:root[data-theme="obsidian-rose"] .engagement-quote .engagement-refresh:hover{background:#313744}
+:root[data-theme="obsidian-rose"] .engagement-copy span,:root[data-theme="obsidian-rose"] .engagement-quote .engagement-copy span{color:var(--primary)}
+:root[data-theme="obsidian-rose"] .engagement-copy strong,:root[data-theme="obsidian-rose"] .engagement-quote .engagement-copy strong{color:var(--ink)}
+:root[data-theme="obsidian-rose"] .engagement-copy small,:root[data-theme="obsidian-rose"] .engagement-quote .engagement-copy small{color:var(--muted)}
