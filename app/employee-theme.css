@@ -24,7 +24,7 @@
 .employee-stats .stat-card:nth-child(2) .stat-icon { background:#edf4f6;color:#426579; }
 .employee-stats .stat-card:nth-child(3) .stat-icon { background:#f4f1e8;color:#827046; }
 .employee-stats .stat-card:nth-child(4) .stat-icon { background:#f0eafb;color:#7254a4; }
-.employee-overview { grid-template-columns:minmax(0,1.65fr) minmax(290px,.85fr);align-items:stretch;gap:22px; }
+.employee-overview { grid-template-columns:minmax(0,1fr);align-items:stretch;gap:22px; }
 .employee-history { box-shadow:0 8px 24px rgba(24,65,55,.035); }
 .employee-history .card-header { padding:23px; }
 .employee-history .empty-state { min-height:260px;display:flex;flex-direction:column;justify-content:center; }
@@ -44,3 +44,26 @@
 .employee-load-error .error-banner { flex:1;margin:0; }
 @media(max-width:1100px) { .employee-overview { grid-template-columns:1fr; }.employee-day-card h2,.employee-day-card>p { max-width:none; }.employee-stats { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:760px) { .employee-welcome { align-items:flex-start;flex-direction:column;gap:18px;padding:24px; }.employee-welcome-clock { align-items:flex-start;text-align:left;width:100%; }.employee-stats { grid-template-columns:1fr;gap:12px; }.employee-stats .stat-card { flex-direction:row;align-items:center;padding:20px; }.employee-history .card-header { flex-wrap:wrap; }.employee-day-card { padding:24px; } }
+
+/* Employee dark mode: solid, layered surfaces with readable contrast. */
+:root[data-theme="obsidian-rose"] .employee-shell .main-area{color:var(--ink);background:#111318;background-image:none}
+:root[data-theme="obsidian-rose"] .employee-shell .sidebar{color:var(--sidebar-text);border-color:#303744;background:#171a21;background-image:none}
+:root[data-theme="obsidian-rose"] .employee-shell .brand-row strong,:root[data-theme="obsidian-rose"] .employee-shell .profile-copy strong{color:var(--ink)}
+:root[data-theme="obsidian-rose"] .employee-shell .brand-row span,:root[data-theme="obsidian-rose"] .employee-shell .nav-label,:root[data-theme="obsidian-rose"] .employee-shell .profile-copy span,:root[data-theme="obsidian-rose"] .employee-shell .logout-button{color:var(--muted)}
+:root[data-theme="obsidian-rose"] .employee-welcome{color:var(--ink);border-color:#343c49;background:#191c24;background-image:none;box-shadow:0 14px 34px rgba(0,0,0,.24)}
+:root[data-theme="obsidian-rose"] .employee-welcome:after{background:var(--primary-soft);opacity:.65}
+:root[data-theme="obsidian-rose"] .employee-welcome h1,:root[data-theme="obsidian-rose"] .employee-welcome-clock strong{color:var(--ink)}
+:root[data-theme="obsidian-rose"] .employee-welcome p,:root[data-theme="obsidian-rose"] .employee-welcome-clock-label{color:var(--muted)}
+:root[data-theme="obsidian-rose"] .greeting-dot{color:var(--primary)}
+:root[data-theme="obsidian-rose"] .employee-status-chip{color:#c7ced9;border-color:#3b4350;background:#232832}
+:root[data-theme="obsidian-rose"] .employee-status-chip.is-live{color:#79dabd;border-color:#296453;background:#19372f}
+:root[data-theme="obsidian-rose"] .employee-stats .stat-card{color:var(--ink);border-color:#303744;background:#191c24;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+:root[data-theme="obsidian-rose"] .employee-stats .stat-card:after{background:var(--primary-soft)}
+:root[data-theme="obsidian-rose"] .employee-stats .stat-icon,:root[data-theme="obsidian-rose"] .employee-stats .stat-card:nth-child(2) .stat-icon,:root[data-theme="obsidian-rose"] .employee-stats .stat-card:nth-child(3) .stat-icon,:root[data-theme="obsidian-rose"] .employee-stats .stat-card:nth-child(4) .stat-icon{color:var(--primary);background:var(--primary-soft)}
+:root[data-theme="obsidian-rose"] .employee-history{border-color:#303744;background:#191c24;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+:root[data-theme="obsidian-rose"] .employee-history .empty-orbit{border-color:#3b4451;background:#20242e}
+:root[data-theme="obsidian-rose"] .employee-day-card{color:var(--ink);border-color:#343c49;background:#20242e;background-image:none;box-shadow:0 10px 30px rgba(0,0,0,.22)}
+:root[data-theme="obsidian-rose"] .employee-day-top,:root[data-theme="obsidian-rose"] .employee-day-card .eyebrow{color:var(--primary)}
+:root[data-theme="obsidian-rose"] .employee-day-card h2,:root[data-theme="obsidian-rose"] .employee-day-card .clock-display{color:var(--ink)}
+:root[data-theme="obsidian-rose"] .employee-day-card>p,:root[data-theme="obsidian-rose"] .employee-day-card .clock-caption,:root[data-theme="obsidian-rose"] .employee-location,:root[data-theme="obsidian-rose"] .employee-loading{color:var(--muted)}
+:root[data-theme="obsidian-rose"] .employee-day-card .button-primary{color:#fff;background:var(--primary);background-image:none}

@@ -4,7 +4,7 @@ import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/workspace";
 
 // Keep admin operational views current without requiring a page reload.
-export function useLiveData<T>(path: string) {
+export function useLiveData<T>(path: string, intervalMs = 30000) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
@@ -33,7 +33,7 @@ export function useLiveData<T>(path: string) {
     const reloadVisible = () => {
       if (document.visibilityState === "visible") void load();
     };
-    const timer = setInterval(reloadVisible, 30000);
+    const timer = setInterval(reloadVisible, intervalMs);
     window.addEventListener("focus", reloadVisible);
     document.addEventListener("visibilitychange", reloadVisible);
     return () => {
@@ -42,6 +42,6 @@ export function useLiveData<T>(path: string) {
       window.removeEventListener("focus", reloadVisible);
       document.removeEventListener("visibilitychange", reloadVisible);
     };
-  }, [path, refreshKey]);
+  }, [path, refreshKey, intervalMs]);
   return { data, error, refresh };
 }

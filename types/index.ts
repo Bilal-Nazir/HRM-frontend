@@ -68,6 +68,7 @@ export type LeaveRequest = {
   totalDays: number;
   reason?: string;
   status: string;
+  managerComment?: string;
   createdAt?: string;
 };
 
@@ -152,6 +153,9 @@ export type ProjectComment = {
   id: string;
   taskId: string;
   authorEmployeeId: string;
+  mentionedEmployeeIds?: string[];
+  author?: { id: string; name: string; employeeCode: string } | null;
+  mentions?: { id: string; name: string; employeeCode: string }[];
   body: string;
   createdAt: string;
 };
@@ -163,4 +167,13 @@ export type ProjectAttachment = {
   size: number;
   uploadedByEmployeeId?: string;
   createdAt: string;
+};
+export type ProjectReminder = {
+  id: string;
+  projectId: string;
+  title: string;
+  note?: string;
+  scheduledAt: string;
+  createdByEmployeeId?: string;
+  createdAt?: string;
 };

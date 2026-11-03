@@ -121,7 +121,7 @@ export default function AdminLeave() {
                       {item.endDate.slice(0, 10)}
                     </td>
                     <td>{item.totalDays}</td>
-                    <td>{item.reason || "—"}</td>
+                    <td><span>{item.reason || "—"}</span>{item.managerComment && <small style={{display:"block",marginTop:5,color:"var(--green-dark)"}}>Manager: {item.managerComment}</small>}</td>
                     <td>
                       {item.status === "pending" ? (
                         <div className="admin-table-actions">

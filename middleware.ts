@@ -14,6 +14,9 @@ const employeePages = [
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const accountType = request.cookies.get("hrm_account_type")?.value;
+  if (pathname === "/" && accountType) {
+    return NextResponse.redirect(new URL(accountType === "admin" ? "/admin/dashboard" : "/dashboard", request.url));
+  }
   const isAdminPage = pathname.startsWith("/admin/") && pathname !== "/admin/login";
   const isEmployeePage = employeePages.some(
     (page) => pathname === page || pathname.startsWith(`${page}/`),
@@ -31,6 +34,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/",
     "/admin/:path*",
     "/dashboard/:path*",
     "/employees/:path*",

@@ -1,4 +1,5 @@
 export const THEME_STORAGE_KEY = "hrm_theme";
+export const DARK_ACCENT_STORAGE_KEY = "hrm_dark_accent";
 
 export const themes = [
   { id: "emerald", name: "Emerald Atelier", description: "Calm, refined and familiar", colors: ["#149B7B", "#132747", "#E4F5EF", "#E2A73F"] },
@@ -18,8 +19,19 @@ export function isThemeId(value: string | null): value is ThemeId {
 
 export function applyTheme(theme: ThemeId) {
   document.documentElement.dataset.theme = theme;
+  applyDarkAccent();
   localStorage.setItem(THEME_STORAGE_KEY, theme);
   window.dispatchEvent(new CustomEvent("hrm-theme-change", { detail: theme }));
+}
+
+export function applyDarkAccent(color = localStorage.getItem(DARK_ACCENT_STORAGE_KEY) || "#cf2b7a") {
+  if (!/^#[0-9a-f]{6}$/i.test(color)) return;
+  localStorage.setItem(DARK_ACCENT_STORAGE_KEY, color);
+  document.documentElement.style.setProperty("--dark-accent", color);
+}
+
+export function savedDarkAccent() {
+  return localStorage.getItem(DARK_ACCENT_STORAGE_KEY) || "#cf2b7a";
 }
 
 export function savedTheme(): ThemeId {

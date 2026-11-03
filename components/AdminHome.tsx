@@ -160,7 +160,8 @@ export default function AdminHome() {
   );
   const health = useMemo(() => (summaryData.data ? attendanceHealth(summaryData.data) : null), [summaryData.data]);
   const deptHours = useMemo(() => hoursByDepartment(daily, employees, departments), [daily, employees, departments]);
-  const leaders = useMemo(() => topEmployees(daily, employees), [daily, employees]);
+  const currentMonthDaily = useMemo(() => daily.filter((item) => item.workDate?.startsWith(todayKey.slice(0, 7))), [daily, todayKey]);
+  const leaders = useMemo(() => topEmployees(currentMonthDaily, employees), [currentMonthDaily, employees]);
   const hasDepartmentHours = deptHours.some((item) => item.name !== "Unassigned");
   const hoursChartData = useMemo(
     () =>
@@ -205,8 +206,8 @@ export default function AdminHome() {
     const rows = liveRows.map((item) => ({
       Employee: item.employee?.name || "Employee unavailable",
       Department: departmentName(employees.find((candidate) => candidate.id === item.employeeId), departments),
-      "Check in": new Date(item.checkInAt).toLocaleString(),
-      "Check out": item.checkOutAt ? new Date(item.checkOutAt).toLocaleString() : "In progress",
+      "Check in": new Date(item.checkInAt).toLocaleString([], { hour12: true }),
+      "Check out": item.checkOutAt ? new Date(item.checkOutAt).toLocaleString([], { hour12: true }) : "In progress",
       Hours: formatDuration(item.checkInAt, item.checkOutAt, today),
       Status: item.status,
       Flags: item.flags?.join("; ") || "",
@@ -396,8 +397,8 @@ export default function AdminHome() {
                         </div>
                       </td>
                       <td>{departmentName(employee, departments)}</td>
-                      <td>{new Date(item.checkInAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td>
-                      <td>{item.checkOutAt ? new Date(item.checkOutAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "In progress"}</td>
+                      <td>{new Date(item.checkInAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })}</td>
+                      <td>{item.checkOutAt ? new Date(item.checkOutAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }) : "In progress"}</td>
                       <td>{formatDuration(item.checkInAt, item.checkOutAt, today)}</td>
                       <td><StatusPill value={item.status} /></td>
                       <td>{item.flags?.length ? <span className="attendance-flags">{item.flags.join(", ").replaceAll("_", " ")}</span> : "—"}</td>

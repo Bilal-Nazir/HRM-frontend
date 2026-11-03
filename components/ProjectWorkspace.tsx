@@ -2,11 +2,15 @@
 
 import {
   Activity,
+  AtSign,
+  BellRing,
   Archive,
   ArrowLeft,
   Calendar,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   CircleDot,
   Clock3,
@@ -25,7 +29,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useParams, usePathname } from "next/navigation";
+import { useParams, usePathname, useSearchParams } from "next/navigation";
 import {
   CSSProperties,
   FormEvent,
@@ -47,11 +51,12 @@ import {
   ProjectAttachment,
   ProjectComment,
   ProjectMember,
+  ProjectReminder,
   ProjectTask,
   WorkflowStatus,
 } from "@/types";
 
-type Tab = "overview" | "board" | "tasks" | "members" | "workflow" | "activity";
+type Tab = "overview" | "board" | "tasks" | "calendar" | "members" | "workflow" | "activity";
 const tabs: {
   id: Tab;
   label: string;
@@ -61,6 +66,7 @@ const tabs: {
   { id: "overview", label: "Overview", icon: CircleDot },
   { id: "board", label: "Board", icon: Columns3 },
   { id: "tasks", label: "Stories & tasks", icon: ListChecks },
+  { id: "calendar", label: "Calendar", icon: Calendar },
   { id: "members", label: "Members", icon: Users },
   { id: "workflow", label: "Workflow settings", icon: Settings2, admin: true },
   { id: "activity", label: "Activity", icon: Activity },
@@ -72,9 +78,17 @@ const emptyTask = {
   priority: "medium",
   workflowStatusId: "",
   assigneeEmployeeIds: [] as string[],
+  startDate: "",
   dueDate: "",
   estimatedHours: "",
   labels: "",
+};
+const localDateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+const toLocalDateTimeInput = (value?: string) => {
+  if (!value) return "";
+  const date = new Date(value);
+  const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return shifted.toISOString().slice(0, 16);
 };
 const elapsedSeconds = (task: ProjectTask, now: Date | null) =>
   Math.max(
@@ -98,6 +112,7 @@ const formatElapsed = (seconds: number) => {
 export default function ProjectWorkspace() {
   const { projectId } = useParams<{ projectId: string }>(),
     pathname = usePathname(),
+    searchParams = useSearchParams(),
     admin = pathname.startsWith("/admin"),
     prefix = admin ? "/admin" : "";
   const now = useClientClock();
@@ -120,12 +135,19 @@ export default function ProjectWorkspace() {
     [selected, setSelected] = useState<ProjectTask | null>(null),
     [comments, setComments] = useState<ProjectComment[]>([]),
     [attachments, setAttachments] = useState<ProjectAttachment[]>([]),
+    [reminders, setReminders] = useState<ProjectReminder[]>([]),
     [pendingFiles, setPendingFiles] = useState<File[]>([]),
     [comment, setComment] = useState(""),
+    [mentionedEmployeeIds, setMentionedEmployeeIds] = useState<string[]>([]),
+    [mentionQuery, setMentionQuery] = useState<string | null>(null),
+    [calendarQuickOpen, setCalendarQuickOpen] = useState(false),
+    [calendarQuick, setCalendarQuick] = useState({ kind: "task" as "task" | "reminder", title: "", note: "", scheduledAt: "" }),
     [saving, setSaving] = useState(false),
     [search, setSearch] = useState(""),
     [priority, setPriority] = useState(""),
     [assignee, setAssignee] = useState(""),
+    [calendarView, setCalendarView] = useState<"month" | "week">("month"),
+    [calendarCursor, setCalendarCursor] = useState(() => new Date()),
     [taskForm, setTaskForm] = useState(emptyTask),
     [newMembers, setNewMembers] = useState<string[]>([]),
     [columnForm, setColumnForm] = useState({
@@ -135,11 +157,12 @@ export default function ProjectWorkspace() {
       timerAction: "none" as "none" | "start" | "stop",
     });
   const moving = useRef(new Set<string>());
+  const commentInput = useRef<HTMLTextAreaElement>(null);
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const [detail, taskData, activityData] = await Promise.all([
+      const [detail, taskData, activityData, reminderData] = await Promise.all([
         api.get<{
           project: Project;
           members: ProjectMember[];
@@ -151,12 +174,14 @@ export default function ProjectWorkspace() {
         api.get<{ activity: ProjectActivity[] }>(
           `/projects/${projectId}/activity?size=100`,
         ),
+        api.get<{ reminders: ProjectReminder[] }>(`/projects/${projectId}/reminders`),
       ]);
       setProject(detail.project);
       setMembers(detail.members);
       setWorkflow(detail.workflow.filter((x) => !x.isArchived));
       setTasks(taskData.tasks);
       setActivities(activityData.activity);
+      setReminders(reminderData.reminders || []);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Could not load project");
     } finally {
@@ -166,6 +191,10 @@ export default function ProjectWorkspace() {
   useEffect(() => {
     load();
   }, [load]);
+  useEffect(() => {
+    const requested = searchParams.get("view") as Tab | null;
+    if (requested && tabs.some((item) => item.id === requested)) setTab(requested);
+  }, [searchParams]);
   useEffect(() => {
     if (admin)
       api
@@ -197,6 +226,22 @@ export default function ProjectWorkspace() {
       ),
     [tasks, search, priority, assignee],
   );
+  const calendarTasks = useMemo(() => filtered.filter((task) => task.startDate || task.dueDate), [filtered]);
+  const tasksForDay = useCallback((day: Date) => calendarTasks.filter((task) => localDateKey(new Date(task.startDate || task.dueDate || "")) === localDateKey(day)), [calendarTasks]);
+  const remindersForDay = useCallback((day: Date) => reminders.filter((reminder) => localDateKey(new Date(reminder.scheduledAt)) === localDateKey(day)), [reminders]);
+  const monthCells = useMemo(() => {
+    const first = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth(), 1);
+    const start = new Date(first);
+    start.setDate(first.getDate() - ((first.getDay() + 6) % 7));
+    return Array.from({ length: 42 }, (_, index) => { const day = new Date(start); day.setDate(start.getDate() + index); return day; });
+  }, [calendarCursor]);
+  const weekDays = useMemo(() => {
+    const start = new Date(calendarCursor);
+    start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+    start.setHours(0, 0, 0, 0);
+    return Array.from({ length: 7 }, (_, index) => { const day = new Date(start); day.setDate(start.getDate() + index); return day; });
+  }, [calendarCursor]);
+  const calendarHours = useMemo(() => Array.from({ length: 14 }, (_, index) => index + 7), []);
   const doneIds = new Set(
       workflow.filter((x) => x.category === "done").map((x) => x.id),
     ),
@@ -286,6 +331,31 @@ export default function ProjectWorkspace() {
       setSaving(false);
     }
   };
+  const openCalendarQuickCreate = (day = new Date(), hour = 9) => {
+    const scheduled = new Date(day);
+    scheduled.setHours(hour, 0, 0, 0);
+    setCalendarQuick({ kind: "task", title: "", note: "", scheduledAt: toLocalDateTimeInput(scheduled.toISOString()) });
+    setCalendarQuickOpen(true);
+  };
+  const createCalendarItem = async (event: FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      if (calendarQuick.kind === "task") {
+        const selfMember = members.find((member) => member.employeeId === session?.employeeId);
+        await api.post(`/projects/${projectId}/tasks`, { type: "task", title: calendarQuick.title, description: calendarQuick.note, priority: "medium", startDate: calendarQuick.scheduledAt, assigneeEmployeeIds: selfMember ? [selfMember.employeeId] : [] });
+      } else {
+        await api.post(`/projects/${projectId}/reminders`, { title: calendarQuick.title, note: calendarQuick.note, scheduledAt: calendarQuick.scheduledAt });
+      }
+      setCalendarQuickOpen(false);
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not create calendar item");
+    } finally {
+      setSaving(false);
+    }
+  };
   const openTask = async (task: ProjectTask) => {
     setSelected(task);
     try {
@@ -314,21 +384,40 @@ export default function ProjectWorkspace() {
       setSaving(false);
     }
   };
-  const downloadAttachment = async (item: ProjectAttachment) => {
+  const openAttachment = async (item: ProjectAttachment) => {
     try {
       const blob = await api.download(
           `/projects/${projectId}/attachments/${item.id}`,
-        ),
-        url = URL.createObjectURL(blob),
-        link = document.createElement("a");
-      link.href = url;
-      link.download = item.originalName;
-      link.click();
-      URL.revokeObjectURL(url);
+        );
+      const url = URL.createObjectURL(blob);
+      if (item.mimeType.startsWith("image/") || item.mimeType === "application/pdf") {
+        window.open(url, "_blank", "noopener,noreferrer");
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      } else {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = item.originalName;
+        link.click();
+        URL.revokeObjectURL(url);
+      }
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Could not download attachment",
       );
+    }
+  };
+  const changeTimer = async (action: "start" | "pause") => {
+    if (!selected) return;
+    setSaving(true);
+    try {
+      const result = await api.patch<{ task: ProjectTask }>(`/projects/${projectId}/tasks/${selected.id}/timer`, { action });
+      const timerState = action === "pause" ? { timeStartedAt: undefined, timeStoppedAt: result.task.timeStoppedAt || new Date().toISOString() } : { timeStartedAt: result.task.timeStartedAt || new Date().toISOString(), timeStoppedAt: undefined };
+      setSelected({ ...selected, ...result.task, ...timerState });
+      setTasks((rows) => rows.map((task) => task.id === selected.id ? { ...task, ...result.task, ...timerState } : task));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not update timer");
+    } finally {
+      setSaving(false);
     }
   };
   const addComment = async (e: FormEvent) => {
@@ -336,16 +425,41 @@ export default function ProjectWorkspace() {
     if (!selected || !comment.trim()) return;
     setSaving(true);
     try {
+      const activeMentionIds = mentionedEmployeeIds.filter((id) => { const code = members.find((member) => member.employeeId === id)?.employee?.employeeCode; return code ? comment.includes(`@${code}`) : false; });
       await api.post(`/projects/${projectId}/tasks/${selected.id}/comments`, {
         body: comment,
+        mentionedEmployeeIds: activeMentionIds,
       });
       setComment("");
+      setMentionedEmployeeIds([]);
+      setMentionQuery(null);
       await openTask(selected);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not add comment");
     } finally {
       setSaving(false);
     }
+  };
+  const changeComment = (value: string, caret: number) => {
+    setComment(value);
+    const match = value.slice(0, caret).match(/(?:^|\s)@([\w-]*)$/);
+    setMentionQuery(match ? match[1] : null);
+  };
+  const mentionSuggestions = mentionQuery === null ? [] : members.filter((member) => {
+    const person = member.employee;
+    if (!person) return false;
+    const searchValue = `${person.firstName} ${person.lastName} ${person.employeeCode}`.toLowerCase();
+    return searchValue.includes(mentionQuery.toLowerCase());
+  }).slice(0, 6);
+  const insertMention = (member: ProjectMember) => {
+    if (!member.employee || !commentInput.current) return;
+    const caret = commentInput.current.selectionStart ?? comment.length;
+    const before = comment.slice(0, caret).replace(/@[\w-]*$/, `@${member.employee.employeeCode} `);
+    const next = before + comment.slice(caret);
+    setComment(next);
+    setMentionedEmployeeIds((ids) => [...new Set([...ids, member.employeeId])]);
+    setMentionQuery(null);
+    requestAnimationFrame(() => { commentInput.current?.focus(); commentInput.current?.setSelectionRange(before.length, before.length); });
   };
   const saveSelected = async () => {
     if (!selected) return;
@@ -355,6 +469,7 @@ export default function ProjectWorkspace() {
         title: selected.title,
         description: selected.description || "",
         priority: selected.priority,
+        startDate: selected.startDate || null,
         dueDate: selected.dueDate || null,
         estimatedHours: selected.estimatedHours,
         assigneeEmployeeIds: selected.assigneeEmployeeIds,
@@ -579,7 +694,7 @@ export default function ProjectWorkspace() {
                 </button>
               ))}
           </nav>
-          {(tab === "board" || tab === "tasks") && (
+          {(tab === "board" || tab === "tasks" || tab === "calendar") && (
             <div className="board-toolbar">
               <div className="project-search">
                 <Search size={15} />
@@ -599,17 +714,14 @@ export default function ProjectWorkspace() {
                 <option>high</option>
                 <option>critical</option>
               </select>
-              <select
-                value={assignee}
-                onChange={(e) => setAssignee(e.target.value)}
-              >
-                <option value="">Assignee</option>
-                {members.map((m) => (
-                  <option key={m.employeeId} value={m.employeeId}>
-                    {m.employee?.firstName} {m.employee?.lastName}
-                  </option>
+              <div className="assignee-profile-filter" aria-label="Filter by assignee">
+                <button type="button" className={!assignee ? "active" : ""} onClick={() => setAssignee("")} title="All assignees">All</button>
+                {members.filter((m) => m.employee).map((m) => (
+                  <button type="button" key={m.employeeId} className={assignee === m.employeeId ? "active" : ""} onClick={() => setAssignee(assignee === m.employeeId ? "" : m.employeeId)} title={`${m.employee?.firstName} ${m.employee?.lastName}`}>
+                    {m.employee?.firstName?.[0]}{m.employee?.lastName?.[0]}
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
           )}
         </div>
@@ -800,21 +912,7 @@ export default function ProjectWorkspace() {
                             </div>
                           </article>
                         ))}
-                      <button
-                        type="button"
-                        className="kanban-create-task"
-                        disabled={project.status === "archived"}
-                        onClick={() => {
-                          setTaskForm({
-                            ...emptyTask,
-                            workflowStatusId: status.id,
-                          });
-                          setTaskModal(true);
-                        }}
-                      >
-                        <Plus size={14} />
-                        Create task
-                      </button>
+                      {["todo", "in_progress"].includes(status.category) && <button type="button" className="kanban-create-task" disabled={project.status === "archived"} onClick={() => { setTaskForm({ ...emptyTask, workflowStatusId: status.id }); setTaskModal(true); }}><Plus size={14} />Create task</button>}
                     </div>
                   </section>
                 ))}
@@ -1030,7 +1128,7 @@ export default function ProjectWorkspace() {
                   <i />
                   <div>
                     <strong>{a.action.replaceAll(".", " ")}</strong>
-                    <span>{new Date(a.createdAt).toLocaleString()}</span>
+                    <span>{new Date(a.createdAt).toLocaleString([], { hour12: true })}</span>
                   </div>
                   {a.taskId && <small>Issue activity</small>}
                 </article>
@@ -1170,12 +1268,20 @@ export default function ProjectWorkspace() {
                       }
                     >
                       <option value="">Project default</option>
-                      {workflow.map((s) => (
+                      {workflow.filter((s) => ["todo", "in_progress"].includes(s.category)).map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.name}
                         </option>
                       ))}
                     </select>
+                  </div>
+                  <div className="field">
+                    <label>Schedule start</label>
+                    <input
+                      type="datetime-local"
+                      value={taskForm.startDate}
+                      onChange={(e) => setTaskForm({ ...taskForm, startDate: e.target.value })}
+                    />
                   </div>
                   <div className="field">
                     <label>Due date</label>
@@ -1255,6 +1361,22 @@ export default function ProjectWorkspace() {
             </form>
           </div>
         )}
+        {tab === "calendar" && (
+          <section className="card project-calendar">
+            <div className="calendar-controls">
+              <button type="button" className="button button-secondary" onClick={() => setCalendarCursor(new Date())}>Today</button>
+              <button type="button" className="button button-primary" onClick={() => openCalendarQuickCreate(calendarCursor)}><Plus size={15}/>Add task or reminder</button>
+              <div className="calendar-navigation"><button type="button" className="icon-button" aria-label="Previous period" onClick={() => setCalendarCursor((value) => { const next = new Date(value); calendarView === "month" ? next.setMonth(next.getMonth() - 1) : next.setDate(next.getDate() - 7); return next; })}><ChevronLeft size={18}/></button><strong>{calendarCursor.toLocaleDateString([], { month: "long", year: "numeric" })}</strong><button type="button" className="icon-button" aria-label="Next period" onClick={() => setCalendarCursor((value) => { const next = new Date(value); calendarView === "month" ? next.setMonth(next.getMonth() + 1) : next.setDate(next.getDate() + 7); return next; })}><ChevronRight size={18}/></button></div>
+              <select aria-label="Calendar view" value={calendarView} onChange={(e) => setCalendarView(e.target.value as "month" | "week")}><option value="month">Month</option><option value="week">Week · hourly</option></select>
+            </div>
+            {calendarView === "month" ? <div className="calendar-month-grid">
+              {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((day) => <div className="calendar-weekday" key={day}>{day}</div>)}
+              {monthCells.map((day) => { const rows = tasksForDay(day); const dayReminders = remindersForDay(day); const isToday = localDateKey(day) === localDateKey(new Date()); return <div key={day.toISOString()} className={`calendar-day${day.getMonth() !== calendarCursor.getMonth() ? " outside" : ""}${isToday ? " today" : ""}`}><time>{day.getDate()}</time><button type="button" className="calendar-cell-add" title="Add task or reminder" onClick={() => openCalendarQuickCreate(day)}><Plus size={13}/></button><div>{rows.slice(0, 3).map((task) => <button type="button" key={task.id} className={`calendar-event priority-${task.priority}`} onClick={() => openTask(task)} title={task.title}><strong>{task.startDate ? new Date(task.startDate).toLocaleTimeString([], {hour:"numeric",minute:"2-digit",hour12:true}) : "Due"}</strong> {task.title}</button>)}{dayReminders.slice(0, 2).map((reminder) => <button type="button" key={reminder.id} className="calendar-event calendar-reminder" title={reminder.note || reminder.title}><BellRing size={11}/><strong>{new Date(reminder.scheduledAt).toLocaleTimeString([], {hour:"numeric",minute:"2-digit",hour12:true})}</strong> {reminder.title}</button>)}{rows.length + dayReminders.length > 5 && <small>+{rows.length + dayReminders.length - 5} more</small>}</div></div>; })}
+            </div> : <div className="calendar-week-scroll"><div className="calendar-week-grid"><div className="calendar-time-corner"/>{weekDays.map((day) => <div className={`calendar-week-head${localDateKey(day) === localDateKey(new Date()) ? " today" : ""}`} key={day.toISOString()}><span>{day.toLocaleDateString([], {weekday:"short"})}</span><strong>{day.getDate()}</strong></div>)}{calendarHours.map((hour) => <div className="calendar-hour-row" key={hour}><time>{new Date(2020,0,1,hour).toLocaleTimeString([], {hour:"numeric",hour12:true})}</time>{weekDays.map((day) => { const rows = tasksForDay(day).filter((task) => (task.startDate ? new Date(task.startDate).getHours() : 9) === hour); const hourReminders = remindersForDay(day).filter((reminder) => new Date(reminder.scheduledAt).getHours() === hour); return <div className="calendar-hour-cell" key={`${day.toISOString()}-${hour}`} onDoubleClick={() => openCalendarQuickCreate(day, hour)}><button type="button" className="calendar-hour-add" aria-label="Add calendar item" onClick={() => openCalendarQuickCreate(day, hour)}><Plus size={11}/></button>{rows.map((task) => <button type="button" key={task.id} className={`calendar-event priority-${task.priority}`} onClick={() => openTask(task)}><strong>{task.startDate ? new Date(task.startDate).toLocaleTimeString([], {hour:"numeric",minute:"2-digit",hour12:true}) : "9:00 AM"}</strong><span>{task.title}</span></button>)}{hourReminders.map((reminder) => <button type="button" key={reminder.id} className="calendar-event calendar-reminder"><BellRing size={10}/><strong>{new Date(reminder.scheduledAt).toLocaleTimeString([], {hour:"numeric",minute:"2-digit",hour12:true})}</strong><span>{reminder.title}</span></button>)}</div>; })}</div>)}</div></div>}
+            {!calendarTasks.length && !reminders.length && <EmptyState title="No scheduled work" description="Click any date or hour to add a task or reminder." />}
+          </section>
+        )}
+        {calendarQuickOpen && <div className="modal-backdrop"><form className="modal project-modal calendar-quick-modal" onSubmit={createCalendarItem}><div className="modal-header"><div><h2>Add to calendar</h2><p>Create scheduled work or a shared project reminder.</p></div><button type="button" className="icon-button" onClick={() => setCalendarQuickOpen(false)}><X size={18}/></button></div><div className="modal-body">{error && <ErrorBanner message={error}/>}<div className="calendar-kind-picker"><button type="button" className={calendarQuick.kind === "task" ? "active" : ""} onClick={() => setCalendarQuick({...calendarQuick,kind:"task"})}><ListChecks size={18}/><span><strong>Task</strong><small>Add scheduled work to the board</small></span></button><button type="button" className={calendarQuick.kind === "reminder" ? "active" : ""} onClick={() => setCalendarQuick({...calendarQuick,kind:"reminder"})}><BellRing size={18}/><span><strong>Reminder</strong><small>Add a shared calendar reminder</small></span></button></div><div className="form-grid"><div className="field full"><label>{calendarQuick.kind === "task" ? "Task title" : "Reminder title"}</label><input required autoFocus value={calendarQuick.title} onChange={(e) => setCalendarQuick({...calendarQuick,title:e.target.value})}/></div><div className="field full"><label>Date and time</label><input required type="datetime-local" value={calendarQuick.scheduledAt} onChange={(e) => setCalendarQuick({...calendarQuick,scheduledAt:e.target.value})}/></div><div className="field full"><label>Details (optional)</label><textarea rows={3} value={calendarQuick.note} onChange={(e) => setCalendarQuick({...calendarQuick,note:e.target.value})}/></div></div>{calendarQuick.kind === "task" && <p className="calendar-quick-note">The task starts in the project’s default workflow column and is assigned to you when possible. You can edit all details afterward.</p>}</div><div className="modal-actions"><button type="button" className="button button-secondary" onClick={() => setCalendarQuickOpen(false)}>Cancel</button><button className="button button-primary" disabled={saving}>{saving?"Creating…":calendarQuick.kind === "task"?"Create task":"Create reminder"}</button></div></form></div>}
         {selected && (
           <div className="task-drawer-scrim" onClick={() => setSelected(null)}>
             <aside className="task-drawer" onClick={(e) => e.stopPropagation()}>
@@ -1284,6 +1406,7 @@ export default function ProjectWorkspace() {
                   </span>
                   <strong>{formatElapsed(elapsedSeconds(selected, now))} recorded</strong>
                 </div>
+                <button type="button" className="button button-secondary" disabled={saving || project.status === "archived"} onClick={() => changeTimer(selected.timeStartedAt ? "pause" : "start")}>{selected.timeStartedAt ? "Pause timer" : "Start / resume"}</button>
               </div>
               <div className="drawer-edit-fields">
                 <div className="field">
@@ -1331,6 +1454,10 @@ export default function ProjectWorkspace() {
                       <option>high</option>
                       <option>critical</option>
                     </select>
+                  </div>
+                  <div className="field">
+                    <label>Schedule start</label>
+                    <input type="datetime-local" value={toLocalDateTimeInput(selected.startDate)} onChange={(e) => setSelected({ ...selected, startDate: e.target.value })}/>
                   </div>
                   <div className="field">
                     <label>Due date</label>
@@ -1416,14 +1543,14 @@ export default function ProjectWorkspace() {
                 {attachments.map((item) => (
                   <button
                     key={item.id}
-                    onClick={() => downloadAttachment(item)}
+                    onClick={() => openAttachment(item)}
                   >
                     <span>
                       <Paperclip size={14} />
                       <b>{item.originalName}</b>
                       <small>{Math.ceil(item.size / 1024)} KB</small>
                     </span>
-                    <Download size={15} />
+                    {item.mimeType.startsWith("image/") || item.mimeType === "application/pdf" ? <Search size={15} /> : <Download size={15} />}
                   </button>
                 ))}
               </section>
@@ -1439,19 +1566,25 @@ export default function ProjectWorkspace() {
                         ?.employee?.firstName?.[0] || "U"}
                     </span>
                     <div>
-                      <p>{c.body}</p>
-                      <small>{new Date(c.createdAt).toLocaleString()}</small>
+                      <strong className="comment-author">{c.author?.name || (() => { const person = members.find((m) => m.employeeId === c.authorEmployeeId)?.employee; return person ? `${person.firstName} ${person.lastName}` : "Team member"; })()}</strong>
+                      <p>{c.body.split(/(@[\w-]+)/g).map((part, index) => part.startsWith("@") ? <mark className="comment-mention" key={`${part}-${index}`}>{part}</mark> : part)}</p>
+                      <small>{new Date(c.createdAt).toLocaleString([], { hour12: true })}</small>
                     </div>
                   </article>
                 ))}
                 <form onSubmit={addComment}>
+                  <div className="comment-composer">
                   <textarea
+                    ref={commentInput}
                     required
                     rows={3}
-                    placeholder="Write a comment…"
+                    placeholder="Write a comment… Use @ to mention a teammate"
                     value={comment}
-                    onChange={(e) => setComment(e.target.value)}
+                    onChange={(e) => changeComment(e.target.value, e.target.selectionStart)}
                   />
+                  {mentionQuery !== null && <div className="mention-suggestions">{mentionSuggestions.length ? mentionSuggestions.map((member) => <button type="button" key={member.employeeId} onClick={() => insertMention(member)}><span className="avatar">{member.employee?.firstName?.[0]}{member.employee?.lastName?.[0]}</span><span><strong>{member.employee?.firstName} {member.employee?.lastName}</strong><small>@{member.employee?.employeeCode}</small></span></button>) : <p>No matching project member</p>}</div>}
+                  </div>
+                  <span className="comment-hint"><AtSign size={13}/> Type @ and choose a project member. They’ll receive a notification.</span>
                   <button
                     className="button button-primary"
                     disabled={saving || project.status === "archived"}

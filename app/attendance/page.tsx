@@ -171,7 +171,7 @@ export default function AttendancePage() {
               {records === null && !loading
                 ? "Reload your attendance before checking in or out."
                 : openRecord
-                  ? `Started at ${new Date(openRecord.checkInAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}. Check out when you're done.`
+                  ? `Started at ${new Date(openRecord.checkInAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })}. Check out when you're done.`
                   : "Check in to start your session. We’ll take care of the time."}
             </p>
             <div className="location-note">
@@ -186,6 +186,7 @@ export default function AttendancePage() {
                 ? now.toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
+                    hour12: true,
                   })
                 : "—"}
             </strong>
@@ -263,6 +264,7 @@ export default function AttendancePage() {
                         {new Date(record.checkInAt).toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
+                          hour12: true,
                         })}
                       </td>
                       <td>
@@ -270,6 +272,7 @@ export default function AttendancePage() {
                           ? new Date(record.checkOutAt).toLocaleTimeString([], {
                               hour: "2-digit",
                               minute: "2-digit",
+                              hour12: true,
                             })
                           : "—"}
                       </td>

@@ -7,9 +7,7 @@ import {
   ArrowUpRight,
   CalendarCheck2,
   Clock3,
-  MapPin,
   Palmtree,
-  Sun,
   LogIn,
   LogOut,
 } from "lucide-react";
@@ -105,13 +103,6 @@ export default function EmployeeDashboard() {
         : latest
           ? "Checked out"
           : "No check-in yet";
-  const locationState =
-    session?.checkInWithinGeofence === true
-      ? "Within office area"
-      : session?.checkInWithinGeofence === false
-        ? "Outside office area"
-        : session?.checkInLocation ? "Location captured" : "Location unavailable";
-
   const recordAttendance = async (confirmed = false) => {
     if (attendanceBusy.current || loading || attendance === null) return;
     if (open && !confirmed) {
@@ -175,7 +166,7 @@ export default function EmployeeDashboard() {
           </div>
           <div className="employee-welcome-clock">
             <span className="employee-welcome-clock-label">Local time</span>
-            <strong aria-label="Current local time">{now ? now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—"}</strong>
+            <strong aria-label="Current local time">{now ? now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true }) : "—"}</strong>
             <button
               type="button"
               className="button button-primary dashboard-check-button"
@@ -299,6 +290,7 @@ export default function EmployeeDashboard() {
                           {new Date(item.checkInAt).toLocaleTimeString([], {
                             hour: "2-digit",
                             minute: "2-digit",
+                            hour12: true,
                           })}
                         </td>
                         <td>
@@ -306,6 +298,7 @@ export default function EmployeeDashboard() {
                             ? new Date(item.checkOutAt).toLocaleTimeString([], {
                                 hour: "2-digit",
                                 minute: "2-digit",
+                                hour12: true,
                               })
                             : "In progress"}
                         </td>
@@ -327,53 +320,6 @@ export default function EmployeeDashboard() {
               />
             )}
           </div>
-          <aside className="card employee-day-card">
-            <div className="employee-day-top">
-              <span className="eyebrow">Make today count</span>
-              <Sun size={25} strokeWidth={1.5} />
-            </div>
-            <h2>
-              {open ? "You’re on the clock." : "A little focus. A great day."}
-            </h2>
-            <p>
-              {open
-                ? "Your session is running. Check out when you finish."
-                : "Check in when you’re ready, and we’ll keep track of your time."}
-            </p>
-            <div className="clock-display">
-              {now
-                ? now.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : "—"}
-            </div>
-            <div className="clock-caption">
-              {now
-                ? now.toLocaleDateString([], {
-                    weekday: "long",
-                    month: "long",
-                    day: "numeric",
-                  })
-                : "Your local time"}
-            </div>
-            <Link
-              href="/attendance"
-              className="button button-primary button-block"
-            >
-              <CalendarCheck2 size={17} />
-              {open ? "Manage check-out" : "Open attendance"}
-              <ArrowUpRight size={16} />
-            </Link>
-            <div className="employee-location">
-              <MapPin size={14} />
-              <span>
-                {session
-                  ? `Last check-in: ${locationState.toLowerCase()}`
-                  : "Location is captured when you check in"}
-              </span>
-            </div>
-          </aside>
         </section>
       </div>
     </AppShell>

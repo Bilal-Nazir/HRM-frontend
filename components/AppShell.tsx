@@ -18,12 +18,15 @@ import {
   ArrowLeft,
   Palette,
   FolderKanban,
+  CalendarRange,
+  ListTodo,
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { clearSession, getSession, SessionUser } from "@/lib/auth";
-import { Employee } from "@/types";
+import { Employee, Project } from "@/types";
 import { useClientClock } from "@/lib/useClientClock";
 import NotificationCenter from "@/components/NotificationCenter";
 import { api } from "@/lib/api";
@@ -40,6 +43,7 @@ const navigation = [
   { href: "/settings/theme", label: "Appearance", icon: Palette },
   { href: "/settings/password", label: "Change password", icon: LockKeyhole },
 ];
+type Shortcut = { href: string; label: string; kind: "board" | "calendar" | "tasks" };
 
 export default function AppShell({
   children,
@@ -59,6 +63,9 @@ export default function AppShell({
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [employeeResults, setEmployeeResults] = useState<Employee[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [shortcuts, setShortcuts] = useState<Shortcut[]>([]);
+  const [shortcutPickerOpen, setShortcutPickerOpen] = useState(false);
   const now = useClientClock();
 
   useEffect(() => {
@@ -76,7 +83,17 @@ export default function AppShell({
     }
     setUser(session);
     api.get<{ employee: Employee }>("/employee/me").then((result) => setProfile(result.employee)).catch(() => setProfile(null));
+    api.get<{ projects: Project[] }>("/projects?size=50").then((result) => setProjects(result.projects || [])).catch(() => setProjects([]));
+    try { setShortcuts(JSON.parse(localStorage.getItem(`hrm_shortcuts_${session.userId}`) || "[]").slice(0, 3)); } catch { setShortcuts([]); }
   }, [isAdmin, router]);
+
+  const toggleShortcut = (shortcut: Shortcut) => {
+    if (!user) return;
+    const exists = shortcuts.some((item) => item.href === shortcut.href);
+    const next = exists ? shortcuts.filter((item) => item.href !== shortcut.href) : shortcuts.length < 3 ? [...shortcuts, shortcut] : shortcuts;
+    setShortcuts(next);
+    localStorage.setItem(`hrm_shortcuts_${user.userId}`, JSON.stringify(next));
+  };
 
   useEffect(() => {
     if (!query.trim() || !isAdmin) { setEmployeeResults([]); return; }
@@ -142,6 +159,12 @@ export default function AppShell({
             })}
         </nav>
 
+        <section className="sidebar-shortcuts">
+          <div className="shortcut-heading"><p className="nav-label">Shortcuts</p><button type="button" onClick={() => setShortcutPickerOpen((value) => !value)} aria-label="Manage shortcuts"><Plus size={14}/></button></div>
+          {shortcuts.length ? shortcuts.map((shortcut) => { const Icon = shortcut.kind === "calendar" ? CalendarRange : shortcut.kind === "tasks" ? ListTodo : FolderKanban; return <Link key={shortcut.href} href={`${routePrefix}${shortcut.href}`} onClick={() => setMobileOpen(false)} className="shortcut-link"><Icon size={15}/><span>{shortcut.label}</span></Link>; }) : <button type="button" className="shortcut-empty" onClick={() => setShortcutPickerOpen(true)}>Choose up to 3 quick links</button>}
+          {shortcutPickerOpen && <div className="shortcut-picker"><header><strong>Choose shortcuts</strong><span>{shortcuts.length}/3</span></header><p>Pin a project board, task list or calendar.</p><div>{projects.flatMap((project) => ([{href:`/projects/${project.id}/board`,label:`${project.key} board`,kind:"board" as const},{href:`/projects/${project.id}?view=tasks`,label:`${project.key} tasks`,kind:"tasks" as const},{href:`/projects/${project.id}?view=calendar`,label:`${project.key} calendar`,kind:"calendar" as const}])).map((shortcut) => { const checked = shortcuts.some((item) => item.href === shortcut.href); return <label key={shortcut.href} className={checked ? "selected" : ""}><input type="checkbox" checked={checked} disabled={!checked && shortcuts.length >= 3} onChange={() => toggleShortcut(shortcut)}/><span>{shortcut.label}</span></label>; })}</div><button type="button" className="button button-primary" onClick={() => setShortcutPickerOpen(false)}>Done</button></div>}
+        </section>
+
         <div className="sidebar-footer">
           <button className="profile-card profile-trigger" type="button" aria-expanded={profileOpen} onClick={() => setProfileOpen((value) => !value)}>
             <div className="avatar">
@@ -203,7 +226,6 @@ export default function AppShell({
               {!navigation.some((item) => item.label.toLowerCase().includes(query.trim().toLowerCase())) && !employeeResults.length && <span>No matches</span>}
             </div>}
           </div>
-          {user && <NotificationCenter isAdmin={isAdmin} />}
           <div className="topbar-date">
             {now
               ? new Intl.DateTimeFormat("en", {
@@ -213,6 +235,7 @@ export default function AppShell({
                 }).format(now)
               : "—"}
           </div>
+          {user && <NotificationCenter isAdmin={isAdmin} />}
         </header>
         <div className="page-content">{children}</div>
       </main>

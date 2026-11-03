@@ -11,7 +11,7 @@ import { api, ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { errorMessage } from "@/lib/workspace";
 import { LeaveRequest, LeaveType } from "@/types";
-import { Check, Plus, X, XCircle } from "lucide-react";
+import { MessageSquare, Plus, X } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
 export default function LeavePage() {
@@ -90,13 +90,15 @@ export default function LeavePage() {
     }
   };
 
-  const review = async (id: string, status: "approved" | "rejected") => {
+  const addManagerRemark = async (id: string) => {
+    const comment = window.prompt("Add a remark for HR/Admin (you cannot approve or reject this request):");
+    if (!comment?.trim()) return;
     try {
-      await api.patch(`/leave/requests/${id}/review`, { status });
+      await api.patch(`/leave/requests/${id}/manager-comment`, { comment });
       await load();
     } catch (err) {
       setError(
-        err instanceof ApiError ? err.message : "Could not review request",
+        err instanceof ApiError ? err.message : "Could not add manager remark",
       );
     }
   };
@@ -135,8 +137,8 @@ export default function LeavePage() {
         <section className="card" style={{ marginBottom: 20 }}>
           <div className="card-header">
             <div>
-              <h2>Awaiting your review</h2>
-              <p>Requests submitted by your direct reports</p>
+              <h2>Direct-report requests</h2>
+              <p>Add remarks for HR/Admin. Final approval remains with HR/Admin.</p>
             </div>
             <span className="status-pill status-pending">
               {pending.length} pending
@@ -173,20 +175,7 @@ export default function LeavePage() {
                     <td>{item.totalDays}</td>
                     <td>
                       <div style={{ display: "flex", gap: 7 }}>
-                        <button
-                          className="button button-primary"
-                          onClick={() => review(item.id, "approved")}
-                        >
-                          <Check size={15} />
-                          Approve
-                        </button>
-                        <button
-                          className="button button-secondary"
-                          onClick={() => review(item.id, "rejected")}
-                        >
-                          <XCircle size={15} />
-                          Reject
-                        </button>
+                        <button className="button button-secondary" onClick={() => addManagerRemark(item.id)}><MessageSquare size={15} />{item.managerComment ? "Update remark" : "Add remark"}</button>
                       </div>
                     </td>
                   </tr>

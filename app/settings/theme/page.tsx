@@ -4,12 +4,13 @@ import { Check, MoonStar, Palette, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import { PageHeader } from "@/components/ui";
-import { applyTheme, savedTheme, themes, ThemeId } from "@/lib/theme";
+import { applyDarkAccent, applyTheme, savedDarkAccent, savedTheme, themes, ThemeId } from "@/lib/theme";
 
 export default function ThemeSettingsPage() {
   const [selected, setSelected] = useState<ThemeId>("emerald");
+  const [darkAccent, setDarkAccent] = useState("#cf2b7a");
 
-  useEffect(() => setSelected(savedTheme()), []);
+  useEffect(() => { setSelected(savedTheme()); setDarkAccent(savedDarkAccent()); }, []);
 
   const choose = (theme: ThemeId) => {
     setSelected(theme);
@@ -46,6 +47,7 @@ export default function ThemeSettingsPage() {
             );
           })}
         </div>
+        {selected === "obsidian-rose" && <div className="dark-accent-picker"><div><strong>Dark-mode accent</strong><span>Pick one solid accent colour for buttons, active navigation and highlights.</span></div><label><input type="color" value={darkAccent} onChange={(event) => { setDarkAccent(event.target.value); applyDarkAccent(event.target.value); }}/><code>{darkAccent.toUpperCase()}</code></label></div>}
       </section>
     </AppShell>
   );

@@ -4,7 +4,7 @@ import AppShell from "@/components/AppShell";
 import { EmptyState, ErrorBanner, PageHeader, StatusPill } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import { Employee } from "@/types";
-import { Plus, Search, UserPlus, X } from "lucide-react";
+import { Plus, Search, UserPlus, Users, X } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
@@ -24,10 +24,13 @@ export default function EmployeesPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
+  const [teams, setTeams] = useState<Array<{id:string;name:string;leadEmployeeId?:string;status:string}>>([]);
+  const [teamModal, setTeamModal] = useState(false);
+  const [teamForm, setTeamForm] = useState({name:"",leadEmployeeId:""});
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
-    try { const result = await api.get<{ employees: Employee[] }>(`/employee/view?size=100${search?`&search=${encodeURIComponent(search)}`:""}`); setEmployees(result.employees || []); }
+    try { const [result, teamResult] = await Promise.all([api.get<{ employees: Employee[] }>(`/employee/view?size=100${search?`&search=${encodeURIComponent(search)}`:""}`), api.get<{ teams: Array<{id:string;name:string;leadEmployeeId?:string;status:string}> }>("/organization/teams")]); setEmployees(result.employees || []); setTeams(teamResult.teams || []); }
     catch (err) { setError(err instanceof ApiError ? err.message : "Could not load employees"); }
     finally { setLoading(false); }
   }, [search]);
@@ -43,6 +46,7 @@ export default function EmployeesPage() {
 
   const startEdit = async (employee: Employee) => { setSaving(true); setError(""); setSuccess(""); try { const result = await api.get<{ employee: Employee }>(`/employee/${employee.id}`); const detail = result.employee; setEditing(detail); setForm({ ...emptyForm, firstName: detail.firstName, lastName: detail.lastName, workEmail: detail.workEmail, jobTitle: detail.jobTitle || "", employmentType: detail.employmentType || "full-time", phone: detail.phone || "", personalEmail: detail.personalEmail || "", timezone: detail.timezone || "", employmentStatus: detail.employmentStatus || "active" }); setModal(true); } catch (err) { setError(err instanceof ApiError ? err.message : "Could not load employee profile"); } finally { setSaving(false); } };
   const archive = async (employee: Employee) => { if (!window.confirm(`Remove ${employee.firstName} ${employee.lastName}? Their login will be disabled and they will leave the directory, but attendance and request history will remain.`)) return; setSaving(true); setError(""); try { await api.delete(`/employee/${employee.id}`); await load(); } catch (err) { setError(err instanceof ApiError ? err.message : "Could not remove employee"); } finally { setSaving(false); } };
+  const createTeam = async (event: FormEvent) => { event.preventDefault(); setSaving(true); setError(""); try { await api.post("/organization/teams", { name: teamForm.name, ...(teamForm.leadEmployeeId ? { leadEmployeeId: teamForm.leadEmployeeId } : {}) }); setTeamModal(false); setTeamForm({name:"",leadEmployeeId:""}); await load(); setSuccess("Team created. Employees can be assigned later."); } catch (err) { setError(err instanceof ApiError ? err.message : "Could not create team"); } finally { setSaving(false); } };
 
   const visibleEmployees = statusFilter === "all" ? employees : employees.filter(e => e.employmentStatus === statusFilter);
 
@@ -51,6 +55,7 @@ export default function EmployeesPage() {
     {error && !modal && <ErrorBanner message={error}/>} {success && <div className="success-banner" role="status">{success}</div>}
     <div className="toolbar"><div className="field" style={{position:"relative"}}><Search size={16} style={{position:"absolute",left:12,top:13,color:"#819088"}}/><input style={{paddingLeft:38}} placeholder="Search name, email or employee code" value={search} onChange={e=>setSearch(e.target.value)}/></div></div>
     <div className="filter-chips">{statusFilters.map(status=><button key={status} type="button" className={statusFilter===status?"active":""} onClick={()=>setStatusFilter(status)} style={{textTransform:"capitalize"}}>{status}{status!=="all"?` (${employees.filter(e=>e.employmentStatus===status).length})`:` (${employees.length})`}</button>)}</div>
+    <section className="card" style={{marginBottom:20}}><div className="card-header"><div><h2>Teams</h2><p>Create teams now and add employees later. Assign a lead whenever one is available.</p></div><button className="button button-secondary" onClick={()=>setTeamModal(true)}><Users size={16}/>Create team</button></div><div className="filter-chips" style={{padding:"0 20px 18px",margin:0}}>{teams.length?teams.map(team=><span key={team.id} className="status-pill status-active">{team.name}{team.leadEmployeeId?` · ${employees.find(e=>e.id===team.leadEmployeeId)?.firstName || "Lead assigned"}`:" · No lead yet"}</span>):<span>No teams created yet.</span>}</div></section>
     <section className="card">
       {loading && <div className="loading-line"/>}
       {!loading && visibleEmployees.length===0 ? <EmptyState title="No employees found" description="Add your first employee or adjust the current search and filters."/> : <div className="table-wrap"><table><thead><tr><th>Employee</th><th>Employee ID</th><th>Role / title</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead><tbody>{visibleEmployees.map(employee=><tr key={employee.id}><td><div className="person-cell"><div className="avatar">{employee.firstName[0]}{employee.lastName[0]}</div><div><Link href={`/admin/employees/${employee.id}`}><strong>{employee.firstName} {employee.lastName}</strong></Link><span>{employee.workEmail}</span></div></div></td><td>{employee.employeeCode}</td><td>{employee.jobTitle || "—"}</td><td style={{textTransform:"capitalize"}}>{employee.employmentType || "—"}</td><td><StatusPill value={employee.employmentStatus}/></td><td><div className="admin-table-actions"><Link className="button button-secondary" href={`/admin/employees/${employee.id}`}>Profile</Link><button className="button button-secondary" disabled={saving} onClick={()=>startEdit(employee)}>Edit</button><button className="button button-secondary" disabled={saving} onClick={()=>void archive(employee)}>Delete</button></div></td></tr>)}</tbody></table></div>}
@@ -66,5 +71,6 @@ export default function EmployeesPage() {
       {editing && <><div className="field"><label>Personal email</label><input type="email" value={form.personalEmail} onChange={e=>setForm({...form,personalEmail:e.target.value})}/></div><div className="field"><label>Time zone</label><input placeholder="Asia/Karachi" value={form.timezone} onChange={e=>setForm({...form,timezone:e.target.value})}/></div><div className="field"><label>Employment status</label><select value={form.employmentStatus} onChange={e=>setForm({...form,employmentStatus:e.target.value})}><option value="active">Active</option><option value="invited">Invited</option><option value="suspended">Suspended</option><option value="terminated">Terminated</option></select></div></>}
       {!editing && <div className="field"><label>Temporary password</label><input type="password" minLength={8} required value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/></div>}
     </div></div><div className="modal-actions"><button type="button" className="button button-secondary" onClick={()=>setModal(false)}>Cancel</button><button className="button button-primary" disabled={saving}><UserPlus size={17}/>{saving?"Saving...":editing?"Save changes":"Create employee"}</button></div></form></div>}
+    {teamModal && <div className="modal-backdrop"><form className="modal" onSubmit={createTeam}><div className="modal-header"><div><h2>Create team</h2><p>A team may be created before employees are added.</p></div><button type="button" className="icon-button" onClick={()=>setTeamModal(false)}><X size={18}/></button></div><div className="modal-body">{error&&<ErrorBanner message={error}/>}<div className="form-grid"><div className="field full"><label>Team name</label><input required placeholder="Customer Core" value={teamForm.name} onChange={e=>setTeamForm({...teamForm,name:e.target.value})}/></div><div className="field full"><label>Team lead (optional until staffed)</label><select value={teamForm.leadEmployeeId} onChange={e=>setTeamForm({...teamForm,leadEmployeeId:e.target.value})}><option value="">Assign later</option>{employees.filter(e=>e.employmentStatus==="active").map(e=><option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}</select></div></div></div><div className="modal-actions"><button type="button" className="button button-secondary" onClick={()=>setTeamModal(false)}>Cancel</button><button className="button button-primary" disabled={saving}>Create team</button></div></form></div>}
   </AppShell>;
 }
