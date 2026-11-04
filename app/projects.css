@@ -70,3 +70,65 @@
 .drawer-comments article>div{min-width:0;flex:1}.comment-author{display:block;margin-bottom:5px;color:var(--ink);font-size:10px}.comment-mention{padding:1px 3px;border-radius:4px;color:var(--primary);background:var(--primary-soft);font-weight:800}.comment-composer{position:relative}.comment-hint{display:flex;align-items:center;gap:4px;color:var(--muted);font-size:9px}.mention-suggestions{position:absolute;z-index:5;left:0;right:0;bottom:calc(100% + 6px);max-height:250px;overflow:auto;padding:6px;border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:0 14px 35px color-mix(in srgb,var(--ink) 20%,transparent)}.mention-suggestions>button{width:100%;display:flex;align-items:center;gap:9px;padding:8px;border:0;border-radius:8px;color:var(--ink);background:transparent;text-align:left;cursor:pointer}.mention-suggestions>button:hover{background:var(--primary-soft)}.mention-suggestions .avatar{width:30px;height:30px;flex:0 0 30px}.mention-suggestions>button>span:last-child strong,.mention-suggestions>button>span:last-child small{display:block}.mention-suggestions>button>span:last-child small{margin-top:2px;color:var(--muted)}.mention-suggestions>p{margin:0;padding:12px;color:var(--muted);font-size:10px}
 :root[data-theme="obsidian-rose"] .mention-suggestions{border-color:#3b4350;background:#20242e}:root[data-theme="obsidian-rose"] .mention-suggestions>button:hover{background:#2a303b}
 @media(max-width:1280px){.project-command-bar{align-items:stretch;flex-direction:column}.project-command-bar .board-toolbar{padding:6px 0 0;border-top:1px solid var(--line);border-left:0}.project-command-bar .project-search{flex:1;width:auto}}
+
+/* Keep busy workflow columns compact. Cards retain their natural height and
+   scroll inside the column instead of being compressed or stretching the board. */
+.kanban-board{min-height:0;align-items:flex-start}
+.kanban-column{display:flex;flex-direction:column;height:min(680px,calc(100dvh - 245px));min-height:480px}
+.kanban-column>header{flex:0 0 auto}
+.kanban-column>div{flex:1 1 auto;min-height:0;max-height:none;padding:2px 4px 8px 2px;overscroll-behavior:contain;scrollbar-gutter:stable}
+.kanban-column>div::-webkit-scrollbar{width:7px}
+.kanban-column>div::-webkit-scrollbar-track{background:transparent}
+.kanban-column>div::-webkit-scrollbar-thumb{border:2px solid transparent;border-radius:999px;background:color-mix(in srgb,var(--column-color,var(--primary)) 32%,var(--line));background-clip:padding-box}
+.kanban-task{flex:0 0 auto}
+.kanban-task h3{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.kanban-create-task{position:sticky;z-index:2;bottom:0;flex:0 0 auto;box-shadow:0 -8px 14px color-mix(in srgb,var(--canvas) 85%,transparent)}
+@media(max-width:700px){.kanban-column{height:min(640px,calc(100dvh - 210px));min-height:440px}}
+.kanban-task{overflow:visible}
+.kanban-task h3{padding-right:25px}
+.task-card-menu-trigger{position:absolute;z-index:3;right:8px;top:8px;width:28px;height:28px;display:grid;place-items:center;border:0;border-radius:7px;color:#5a687a;background:transparent;cursor:pointer}
+.task-card-menu-trigger:hover,.task-card-menu-trigger[aria-expanded="true"]{color:#174f91;background:#e5eef9}
+.task-card-menu{position:absolute;z-index:12;right:8px;top:39px;width:165px;overflow:hidden;padding:5px;border:1px solid #cbd3dc;border-radius:10px;background:#fff;box-shadow:0 14px 34px rgba(18,35,61,.2)}
+.task-card-menu button{width:100%;display:flex;align-items:center;gap:7px;padding:9px 10px;border:0;border-radius:7px;color:#26374d;background:transparent;font-size:10px;font-weight:700;text-align:left;cursor:pointer}
+.task-card-menu button:hover{background:#eef2f6}.task-card-menu button.danger{color:#a52c2c}.task-card-menu button.danger:hover{background:#fdeaea}
+:root[data-theme="obsidian-rose"] .task-card-menu-trigger{color:var(--muted)}
+:root[data-theme="obsidian-rose"] .task-card-menu-trigger:hover,:root[data-theme="obsidian-rose"] .task-card-menu-trigger[aria-expanded="true"]{color:var(--ink);background:#2b313d}
+:root[data-theme="obsidian-rose"] .task-card-menu{border-color:#3c4554;background:#20242e;box-shadow:0 16px 38px rgba(0,0,0,.42)}
+:root[data-theme="obsidian-rose"] .task-card-menu button{color:var(--ink)}
+:root[data-theme="obsidian-rose"] .task-card-menu button:hover{background:#2b313d}:root[data-theme="obsidian-rose"] .task-card-menu button.danger{color:#ff9292}:root[data-theme="obsidian-rose"] .task-card-menu button.danger:hover{background:#3a2529}
+
+/* Jira-like work thumbnails: calm typography, key/type at the bottom and
+   controls revealed only when a card is being used. */
+.kanban-task{min-height:136px;padding:16px 14px 13px}
+.kanban-task h3{margin:0 0 30px;padding-right:58px;color:#282e36;font-family:inherit;font-size:15px;font-weight:400;line-height:1.42;letter-spacing:0;-webkit-line-clamp:3}
+.task-card-edit-trigger,.task-card-menu-trigger{position:absolute;z-index:3;top:9px;width:28px;height:28px;display:grid;place-items:center;border:0;border-radius:6px;color:#5c6470;background:transparent;cursor:pointer;opacity:0;transition:opacity .12s,background .12s}
+.task-card-edit-trigger{right:40px}.task-card-menu-trigger{right:8px}
+.kanban-task:hover .task-card-edit-trigger,.kanban-task:hover .task-card-menu-trigger,.task-card-edit-trigger:focus-visible,.task-card-menu-trigger:focus-visible,.task-card-menu-trigger[aria-expanded="true"]{opacity:1}
+.task-card-edit-trigger:hover,.task-card-menu-trigger:hover,.task-card-menu-trigger[aria-expanded="true"]{color:#174f91;background:#e5eef9}
+.jira-task-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto;color:#5d6470}
+.task-card-key{display:flex;align-items:center;gap:7px;min-width:0;font-size:11px;font-weight:550;white-space:nowrap}.task-card-key svg{color:#5b9b24;stroke-width:2.2}
+.jira-task-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0}.jira-priority{display:grid;place-items:center}.jira-priority.priority-low{color:#247f5a}.jira-priority.priority-medium{color:#df6900}.jira-priority.priority-high{color:#d04437}.jira-priority.priority-critical{color:#b42318}.jira-task-footer time{display:flex;align-items:center;gap:4px;color:#5d6470;font-size:9px;white-space:nowrap}.jira-task-footer time.overdue{color:#a52121}
+.jira-task-footer .assignee-stack{margin:0}.jira-task-footer .assignee-stack i{width:30px;height:30px;margin:0;border:2px solid #fff;font-size:9px}.jira-task-footer .assignee-stack i.unassigned{color:#6d7580;background:#eef0f3}.jira-task-footer .assignee-stack i.unassigned svg{width:15px;height:15px}
+.jira-task-footer .task-live-timer{font-size:8px}
+.deleted-task-count{display:grid;place-items:center;min-width:31px;height:31px;padding:0 9px;border-radius:9px;color:var(--primary);background:var(--primary-soft);font-size:11px;font-weight:800}.deleted-task-list{display:flex;flex-direction:column}.deleted-task-list article{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:17px 21px;border-top:1px solid var(--line)}.deleted-task-list article>div:first-child{min-width:0}.deleted-task-list span,.deleted-task-list strong,.deleted-task-list small{display:flex}.deleted-task-list span{align-items:center;gap:6px;color:var(--primary);font-size:9px;font-weight:800}.deleted-task-list strong{margin-top:6px;color:var(--ink);font-size:12px;font-weight:650}.deleted-task-list small{margin-top:5px;color:var(--muted);font-size:9px}.deleted-task-actions{display:flex;flex:0 0 auto;gap:8px}.deleted-task-actions .button{min-height:35px;padding:0 12px;font-size:9px}
+:root[data-theme="obsidian-rose"] .kanban-task h3{color:var(--ink)}:root[data-theme="obsidian-rose"] .task-card-key{color:var(--muted)}:root[data-theme="obsidian-rose"] .jira-task-footer time{color:var(--muted)}:root[data-theme="obsidian-rose"] .task-card-edit-trigger{color:var(--muted)}:root[data-theme="obsidian-rose"] .task-card-edit-trigger:hover{color:var(--ink);background:#2b313d}:root[data-theme="obsidian-rose"] .jira-task-footer .assignee-stack i.unassigned{color:#aeb7c8;border-color:#20242e;background:#303641}
+@media(hover:none){.task-card-edit-trigger,.task-card-menu-trigger{opacity:1}}
+@media(max-width:700px){.deleted-task-list article{align-items:flex-start;flex-direction:column}.deleted-task-actions{width:100%}.deleted-task-actions .button{flex:1}}
+
+/* Board navigation stays reachable even when the horizontal scrollbar is
+   below the fold. Each click advances by one complete workflow column. */
+.kanban-shell{position:relative;min-width:0}
+.kanban-shell .kanban-board{scroll-behavior:smooth;scrollbar-gutter:stable;scrollbar-width:auto;overscroll-behavior-x:contain}
+.kanban-shell .kanban-board::-webkit-scrollbar{height:13px}.kanban-shell .kanban-board::-webkit-scrollbar-track{border-radius:999px;background:color-mix(in srgb,var(--line) 55%,transparent)}.kanban-shell .kanban-board::-webkit-scrollbar-thumb{border:3px solid transparent;border-radius:999px;background:color-mix(in srgb,var(--primary) 58%,var(--muted));background-clip:padding-box}
+.task-inline-title{display:block;width:100%;min-height:90px;margin:0 0 30px;padding:7px 9px;resize:none;border:2px solid #1769d2;border-radius:7px;color:#282e36;background:#fff;font-family:inherit;font-size:15px;font-weight:400;line-height:1.42;letter-spacing:0;box-shadow:0 0 0 2px rgba(23,105,210,.14);outline:0}
+.task-inline-title:disabled{opacity:.7}
+:root[data-theme="obsidian-rose"] .task-inline-title{color:var(--ink);border-color:var(--primary);background:#191c24;box-shadow:0 0 0 2px color-mix(in srgb,var(--primary) 20%,transparent)}
+
+/* The task creator is a real column footer, not a translucent overlay. */
+.kanban-column>.kanban-column-body{display:flex;flex:1 1 auto;flex-direction:column;gap:0;min-height:0;max-height:none;padding:0;overflow:hidden;scrollbar-gutter:auto}
+.kanban-task-scroll{display:flex;flex:1 1 auto;flex-direction:column;gap:9px;min-height:0;padding:2px 4px 12px 2px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--column-color,var(--primary)) 32%,var(--line)) transparent}
+.kanban-task-scroll::-webkit-scrollbar{width:7px}.kanban-task-scroll::-webkit-scrollbar-track{background:transparent}.kanban-task-scroll::-webkit-scrollbar-thumb{border:2px solid transparent;border-radius:999px;background:color-mix(in srgb,var(--column-color,var(--primary)) 32%,var(--line));background-clip:padding-box}
+.kanban-task-scroll>.kanban-create-task{position:sticky;z-index:4;bottom:0;flex:0 0 42px;min-height:42px;margin:2px 0 0;padding:0;border-color:#aeb8c2;background:#fff;box-shadow:0 -12px 20px rgba(23,38,61,.11)}
+.kanban-task-scroll>.kanban-create-task:before{content:"";position:absolute;z-index:-1;left:-3px;right:-3px;bottom:100%;height:14px;pointer-events:none;background:linear-gradient(to top,rgba(236,239,242,.95),transparent)}
+:root[data-theme="obsidian-rose"] .kanban-task-scroll>.kanban-create-task{border-color:#4a5261;background:#20242e;box-shadow:0 -12px 22px rgba(0,0,0,.34)}
+:root[data-theme="obsidian-rose"] .kanban-task-scroll>.kanban-create-task:before{background:linear-gradient(to top,rgba(26,30,39,.96),transparent)}

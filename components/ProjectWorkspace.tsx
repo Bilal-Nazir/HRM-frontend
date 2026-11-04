@@ -4,6 +4,7 @@ import {
   Activity,
   AtSign,
   BellRing,
+  Bookmark,
   Archive,
   ArrowLeft,
   Calendar,
@@ -16,20 +17,23 @@ import {
   Clock3,
   Columns3,
   Download,
+  Equal,
   FileUp,
   ListChecks,
   MessageSquare,
+  MoreHorizontal,
   Paperclip,
   Pencil,
   Plus,
   Search,
   Settings2,
   Trash2,
+  UserRound,
   Users,
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useParams, usePathname, useSearchParams } from "next/navigation";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   CSSProperties,
   FormEvent,
@@ -56,7 +60,7 @@ import {
   WorkflowStatus,
 } from "@/types";
 
-type Tab = "overview" | "board" | "tasks" | "calendar" | "members" | "workflow" | "activity";
+type Tab = "overview" | "board" | "tasks" | "calendar" | "members" | "workflow" | "activity" | "trash";
 const tabs: {
   id: Tab;
   label: string;
@@ -70,6 +74,7 @@ const tabs: {
   { id: "members", label: "Members", icon: Users },
   { id: "workflow", label: "Workflow settings", icon: Settings2, admin: true },
   { id: "activity", label: "Activity", icon: Activity },
+  { id: "trash", label: "Deleted tasks", icon: Trash2 },
 ];
 const emptyTask = {
   type: "task",
@@ -108,10 +113,12 @@ const formatElapsed = (seconds: number) => {
     ? `${hours}h ${minutes}m`
     : `${minutes}m ${secs.toString().padStart(2, "0")}s`;
 };
+const boardTitle = (task: ProjectTask) => task.title.replace(new RegExp(`^${task.key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*[-–—:]\\s*`, "i"), "").trim() || task.title;
 
 export default function ProjectWorkspace() {
   const { projectId } = useParams<{ projectId: string }>(),
     pathname = usePathname(),
+    router = useRouter(),
     searchParams = useSearchParams(),
     admin = pathname.startsWith("/admin"),
     prefix = admin ? "/admin" : "";
@@ -124,6 +131,7 @@ export default function ProjectWorkspace() {
     [members, setMembers] = useState<ProjectMember[]>([]),
     [workflow, setWorkflow] = useState<WorkflowStatus[]>([]),
     [tasks, setTasks] = useState<ProjectTask[]>([]),
+    [deletedTasks, setDeletedTasks] = useState<ProjectTask[]>([]),
     [activities, setActivities] = useState<ProjectActivity[]>([]),
     [employees, setEmployees] = useState<Employee[]>([]),
     [error, setError] = useState(""),
@@ -146,6 +154,10 @@ export default function ProjectWorkspace() {
     [search, setSearch] = useState(""),
     [priority, setPriority] = useState(""),
     [assignee, setAssignee] = useState(""),
+    [taskMenu, setTaskMenu] = useState<string | null>(null),
+    [inlineEditingTaskId, setInlineEditingTaskId] = useState<string | null>(null),
+    [inlineTitle, setInlineTitle] = useState(""),
+    [inlineSavingTaskId, setInlineSavingTaskId] = useState<string | null>(null),
     [calendarView, setCalendarView] = useState<"month" | "week">("month"),
     [calendarCursor, setCalendarCursor] = useState(() => new Date()),
     [taskForm, setTaskForm] = useState(emptyTask),
@@ -158,11 +170,12 @@ export default function ProjectWorkspace() {
     });
   const moving = useRef(new Set<string>());
   const commentInput = useRef<HTMLTextAreaElement>(null);
+  const cancelInlineEdit = useRef(false);
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const [detail, taskData, activityData, reminderData] = await Promise.all([
+      const [detail, taskData, activityData, reminderData, trashData] = await Promise.all([
         api.get<{
           project: Project;
           members: ProjectMember[];
@@ -175,6 +188,7 @@ export default function ProjectWorkspace() {
           `/projects/${projectId}/activity?size=100`,
         ),
         api.get<{ reminders: ProjectReminder[] }>(`/projects/${projectId}/reminders`),
+        api.get<{ tasks: ProjectTask[] }>(`/projects/${projectId}/tasks-trash`),
       ]);
       setProject(detail.project);
       setMembers(detail.members);
@@ -182,6 +196,7 @@ export default function ProjectWorkspace() {
       setTasks(taskData.tasks);
       setActivities(activityData.activity);
       setReminders(reminderData.reminders || []);
+      setDeletedTasks(trashData.tasks || []);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Could not load project");
     } finally {
@@ -193,8 +208,10 @@ export default function ProjectWorkspace() {
   }, [load]);
   useEffect(() => {
     const requested = searchParams.get("view") as Tab | null;
-    if (requested && tabs.some((item) => item.id === requested)) setTab(requested);
-  }, [searchParams]);
+    const fallback = tabs.some((item) => item.id === inferred) ? inferred : "overview";
+    setTab(requested && tabs.some((item) => item.id === requested) ? requested : fallback);
+    setAssignee(searchParams.get("assignee") || "");
+  }, [searchParams, inferred]);
   useEffect(() => {
     if (admin)
       api
@@ -213,6 +230,9 @@ export default function ProjectWorkspace() {
         (m) =>
           m.employeeId === session?.employeeId && m.role === "project_manager",
       );
+  const currentMembership = members.find((member) => member.employeeId === session?.employeeId),
+    canModifyTasks = admin || currentMembership?.role !== "viewer",
+    canPermanentlyDelete = admin || currentMembership?.role === "project_manager";
   const filtered = useMemo(
     () =>
       tasks.filter(
@@ -226,6 +246,14 @@ export default function ProjectWorkspace() {
       ),
     [tasks, search, priority, assignee],
   );
+  const setProjectQuery = (key: "view" | "assignee", value: string, push = false) => {
+    const query = new URLSearchParams(searchParams.toString());
+    if (value) query.set(key, value);
+    else query.delete(key);
+    const target = `${pathname}${query.size ? `?${query.toString()}` : ""}`;
+    if (push) router.push(target, { scroll: false });
+    else router.replace(target, { scroll: false });
+  };
   const calendarTasks = useMemo(() => filtered.filter((task) => task.startDate || task.dueDate), [filtered]);
   const tasksForDay = useCallback((day: Date) => calendarTasks.filter((task) => localDateKey(new Date(task.startDate || task.dueDate || "")) === localDateKey(day)), [calendarTasks]);
   const remindersForDay = useCallback((day: Date) => reminders.filter((reminder) => localDateKey(new Date(reminder.scheduledAt)) === localDateKey(day)), [reminders]);
@@ -370,6 +398,58 @@ export default function ProjectWorkspace() {
     } catch {
       setComments([]);
       setAttachments([]);
+    }
+  };
+  const beginInlineEdit = (task: ProjectTask) => {
+    cancelInlineEdit.current = false;
+    setTaskMenu(null);
+    setInlineEditingTaskId(task.id);
+    setInlineTitle(boardTitle(task));
+  };
+  const saveInlineTitle = async (task: ProjectTask) => {
+    if (inlineSavingTaskId === task.id) return;
+    const title = inlineTitle.trim();
+    if (!title) { setInlineEditingTaskId(null); setInlineTitle(""); return; }
+    if (title === boardTitle(task)) { setInlineEditingTaskId(null); return; }
+    setInlineSavingTaskId(task.id);
+    try {
+      const result = await api.patch<{ task: ProjectTask }>(`/projects/${projectId}/tasks/${task.id}`, { title });
+      setTasks((rows) => rows.map((row) => row.id === task.id ? { ...row, ...result.task, assignees: row.assignees } : row));
+      setInlineEditingTaskId(null);
+      setInlineTitle("");
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not rename task");
+    } finally {
+      setInlineSavingTaskId(null);
+    }
+  };
+  const deleteTask = async (task: ProjectTask) => {
+    setTaskMenu(null);
+    if (!window.confirm(`Delete ${task.key} — ${task.title}? This task will be removed from the project board.`)) return;
+    try {
+      await api.delete(`/projects/${projectId}/tasks/${task.id}`);
+      setTasks((rows) => rows.filter((row) => row.id !== task.id));
+      setDeletedTasks((rows) => [{ ...task, isDeleted: true }, ...rows]);
+      if (selected?.id === task.id) setSelected(null);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not delete task");
+    }
+  };
+  const restoreTask = async (task: ProjectTask) => {
+    try {
+      await api.patch(`/projects/${projectId}/tasks/${task.id}/restore`);
+      await load();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not restore task");
+    }
+  };
+  const permanentlyDeleteTask = async (task: ProjectTask) => {
+    if (!window.confirm(`Permanently delete ${task.key}? This cannot be undone and its comments and files will also be removed.`)) return;
+    try {
+      await api.delete(`/projects/${projectId}/tasks/${task.id}/permanent`);
+      setDeletedTasks((rows) => rows.filter((row) => row.id !== task.id));
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not permanently delete task");
     }
   };
   const attachToSelected = async (files: FileList | null) => {
@@ -687,7 +767,7 @@ export default function ProjectWorkspace() {
                 <button
                   key={id}
                   className={tab === id ? "active" : ""}
-                  onClick={() => setTab(id)}
+                  onClick={() => { setTab(id); setProjectQuery("view", id, true); }}
                 >
                   <Icon size={16} />
                   {label}
@@ -715,9 +795,9 @@ export default function ProjectWorkspace() {
                 <option>critical</option>
               </select>
               <div className="assignee-profile-filter" aria-label="Filter by assignee">
-                <button type="button" className={!assignee ? "active" : ""} onClick={() => setAssignee("")} title="All assignees">All</button>
+                <button type="button" className={!assignee ? "active" : ""} onClick={() => { setAssignee(""); setProjectQuery("assignee", ""); }} title="All assignees">All</button>
                 {members.filter((m) => m.employee).map((m) => (
-                  <button type="button" key={m.employeeId} className={assignee === m.employeeId ? "active" : ""} onClick={() => setAssignee(assignee === m.employeeId ? "" : m.employeeId)} title={`${m.employee?.firstName} ${m.employee?.lastName}`}>
+                  <button type="button" key={m.employeeId} className={assignee === m.employeeId ? "active" : ""} onClick={() => { const next = assignee === m.employeeId ? "" : m.employeeId; setAssignee(next); setProjectQuery("assignee", next); }} title={`${m.employee?.firstName} ${m.employee?.lastName}`}>
                     {m.employee?.firstName?.[0]}{m.employee?.lastName?.[0]}
                   </button>
                 ))}
@@ -812,6 +892,7 @@ export default function ProjectWorkspace() {
         {(tab === "board" || tab === "tasks") && (
           <>
             {tab === "board" ? (
+              <div className="kanban-shell">
               <div className="kanban-board">
                 {workflow.map((status) => (
                   <section
@@ -836,7 +917,8 @@ export default function ProjectWorkspace() {
                         }
                       </b>
                     </header>
-                    <div>
+                    <div className="kanban-column-body">
+                      <div className="kanban-task-scroll">
                       {filtered
                         .filter((t) => t.workflowStatusId === status.id)
                         .map((task) => (
@@ -844,7 +926,7 @@ export default function ProjectWorkspace() {
                             role="button"
                             tabIndex={0}
                             aria-selected={selected?.id === task.id}
-                            draggable={project.status !== "archived"}
+                            draggable={project.status !== "archived" && inlineEditingTaskId !== task.id}
                             onDragStart={(e) =>
                               e.dataTransfer.setData("taskId", task.id)
                             }
@@ -858,25 +940,49 @@ export default function ProjectWorkspace() {
                             key={task.id}
                             className={`kanban-task task-priority-${task.priority}`}
                           >
-                            <h3>{task.title}</h3>
-                            <p
-                              className={`task-card-description${task.description ? "" : " is-empty"}`}
+                            <button
+                              type="button"
+                              className="task-card-edit-trigger"
+                              aria-label={`Edit ${task.key}`}
+                              onClick={(event) => { event.stopPropagation(); beginInlineEdit(task); }}
                             >
-                              {task.description || "No description added yet."}
-                            </p>
-                            {task.labels?.length ? (
-                              <div className="task-labels">
-                                {task.labels.slice(0, 3).map((label) => (
-                                  <span key={label}>{label}</span>
-                                ))}
+                              <Pencil size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              className="task-card-menu-trigger"
+                              aria-label={`More actions for ${task.key}`}
+                              aria-expanded={taskMenu === task.id}
+                              onClick={(event) => { event.stopPropagation(); setTaskMenu(taskMenu === task.id ? null : task.id); }}
+                            >
+                              <MoreHorizontal size={17} />
+                            </button>
+                            {taskMenu === task.id && (
+                              <div className="task-card-menu" onClick={(event) => event.stopPropagation()}>
+                                <button type="button" onClick={() => { setTaskMenu(null); openTask(task); }}>Open task</button>
+                                <button type="button" onClick={() => { navigator.clipboard.writeText(task.key); setTaskMenu(null); }}>Copy key</button>
+                                <button type="button" className="danger" onClick={() => deleteTask(task)}><Trash2 size={14} />Delete task</button>
                               </div>
-                            ) : null}
-                            <div className="task-meta">
-                              <span
-                                className={`priority priority-${task.priority}`}
-                              >
-                                {task.priority}
-                              </span>
+                            )}
+                            {inlineEditingTaskId === task.id ? <textarea
+                              className="task-inline-title"
+                              autoFocus
+                              rows={3}
+                              value={inlineTitle}
+                              disabled={inlineSavingTaskId === task.id}
+                              onClick={(event) => event.stopPropagation()}
+                              onChange={(event) => setInlineTitle(event.target.value)}
+                              onBlur={() => { if (cancelInlineEdit.current) { cancelInlineEdit.current = false; return; } void saveInlineTitle(task); }}
+                              onKeyDown={(event) => {
+                                event.stopPropagation();
+                                if (event.key === "Escape") { event.preventDefault(); cancelInlineEdit.current = true; setInlineEditingTaskId(null); setInlineTitle(""); }
+                                if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.blur(); }
+                              }}
+                            /> : <h3>{boardTitle(task)}</h3>}
+                            <div className="jira-task-footer">
+                              <span className="task-card-key"><Bookmark size={16} />{task.key}</span>
+                              <div className="jira-task-actions">
+                              <span className={`jira-priority priority-${task.priority}`} title={`${task.priority} priority`}><Equal size={18} /></span>
                               {task.dueDate && (
                                 <time
                                   className={
@@ -890,10 +996,8 @@ export default function ProjectWorkspace() {
                                   {new Date(task.dueDate).toLocaleDateString()}
                                 </time>
                               )}
-                            </div>
-                            <div className="task-card-footer">
                               <div className="assignee-stack">
-                                {task.assignees?.slice(0, 4).map((x) => (
+                                {task.assignees?.length ? task.assignees.slice(0, 4).map((x) => (
                                   <i key={x.id} title={x.name}>
                                     {x.name
                                       .split(" ")
@@ -901,7 +1005,7 @@ export default function ProjectWorkspace() {
                                       .slice(0, 2)
                                       .join("")}
                                   </i>
-                                ))}
+                                )) : <i className="unassigned" title="Unassigned"><UserRound size={15} /></i>}
                               </div>
                               {task.timeStartedAt && (
                                 <span className="task-live-timer">
@@ -909,13 +1013,16 @@ export default function ProjectWorkspace() {
                                   {formatElapsed(elapsedSeconds(task, now))}
                                 </span>
                               )}
+                              </div>
                             </div>
                           </article>
                         ))}
                       {["todo", "in_progress"].includes(status.category) && <button type="button" className="kanban-create-task" disabled={project.status === "archived"} onClick={() => { setTaskForm({ ...emptyTask, workflowStatusId: status.id }); setTaskModal(true); }}><Plus size={14} />Create task</button>}
+                      </div>
                     </div>
                   </section>
                 ))}
+              </div>
               </div>
             ) : (
               <section className="card">
@@ -1140,6 +1247,20 @@ export default function ProjectWorkspace() {
                 />
               )}
             </div>
+          </section>
+        )}
+        {tab === "trash" && (
+          <section className="card deleted-task-panel">
+            <div className="card-header">
+              <div><h2>Deleted tasks</h2><p>Restore work or permanently remove records you no longer need.</p></div>
+              <span className="deleted-task-count">{deletedTasks.length}</span>
+            </div>
+            {deletedTasks.length ? <div className="deleted-task-list">
+              {deletedTasks.map((task) => <article key={task.id}>
+                <div><span><Bookmark size={15}/>{task.key}</span><strong>{boardTitle(task)}</strong><small>Deleted {task.updatedAt ? new Date(task.updatedAt).toLocaleString([], { hour12: true }) : "recently"}</small></div>
+                {canModifyTasks && <div className="deleted-task-actions"><button type="button" className="button button-secondary" onClick={() => restoreTask(task)}>Restore</button>{canPermanentlyDelete && <button type="button" className="button button-danger" onClick={() => permanentlyDeleteTask(task)}><Trash2 size={14}/>Delete permanently</button>}</div>}
+              </article>)}
+            </div> : <EmptyState title="Trash is empty" description="Deleted project tasks will appear here and can be restored."/>}
           </section>
         )}
         {taskModal && (
