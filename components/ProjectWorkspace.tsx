@@ -400,6 +400,23 @@ export default function ProjectWorkspace() {
       setAttachments([]);
     }
   };
+  const requestedTaskId = searchParams.get("task");
+  useEffect(() => {
+    if (!requestedTaskId || loading || !project) return;
+    let cancelled = false;
+    api.get<{ task: ProjectTask; comments: ProjectComment[]; attachments: ProjectAttachment[] }>(`/projects/${projectId}/tasks/${requestedTaskId}`)
+      .then((data) => { if (!cancelled) { setSelected(data.task); setComments(data.comments || []); setAttachments(data.attachments || []); } })
+      .catch((err) => { if (!cancelled) setError(err instanceof ApiError ? err.message : "Could not open linked task"); });
+    return () => { cancelled = true; };
+  }, [requestedTaskId, loading, projectId, project]);
+  const closeTask = () => {
+    setSelected(null);
+    if (requestedTaskId) {
+      const query = new URLSearchParams(window.location.search);
+      query.delete("task");
+      router.replace(`${pathname}?${query.toString()}`, { scroll: false });
+    }
+  };
   const beginInlineEdit = (task: ProjectTask) => {
     cancelInlineEdit.current = false;
     setTaskMenu(null);
@@ -430,7 +447,7 @@ export default function ProjectWorkspace() {
       await api.delete(`/projects/${projectId}/tasks/${task.id}`);
       setTasks((rows) => rows.filter((row) => row.id !== task.id));
       setDeletedTasks((rows) => [{ ...task, isDeleted: true }, ...rows]);
-      if (selected?.id === task.id) setSelected(null);
+      if (selected?.id === task.id) closeTask();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Could not delete task");
     }
@@ -555,7 +572,7 @@ export default function ProjectWorkspace() {
         assigneeEmployeeIds: selected.assigneeEmployeeIds,
       });
       await load();
-      setSelected(null);
+      closeTask();
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : "Could not update issue",
@@ -1499,7 +1516,7 @@ export default function ProjectWorkspace() {
         )}
         {calendarQuickOpen && <div className="modal-backdrop"><form className="modal project-modal calendar-quick-modal" onSubmit={createCalendarItem}><div className="modal-header"><div><h2>Add to calendar</h2><p>Create scheduled work or a shared project reminder.</p></div><button type="button" className="icon-button" onClick={() => setCalendarQuickOpen(false)}><X size={18}/></button></div><div className="modal-body">{error && <ErrorBanner message={error}/>}<div className="calendar-kind-picker"><button type="button" className={calendarQuick.kind === "task" ? "active" : ""} onClick={() => setCalendarQuick({...calendarQuick,kind:"task"})}><ListChecks size={18}/><span><strong>Task</strong><small>Add scheduled work to the board</small></span></button><button type="button" className={calendarQuick.kind === "reminder" ? "active" : ""} onClick={() => setCalendarQuick({...calendarQuick,kind:"reminder"})}><BellRing size={18}/><span><strong>Reminder</strong><small>Add a shared calendar reminder</small></span></button></div><div className="form-grid"><div className="field full"><label>{calendarQuick.kind === "task" ? "Task title" : "Reminder title"}</label><input required autoFocus value={calendarQuick.title} onChange={(e) => setCalendarQuick({...calendarQuick,title:e.target.value})}/></div><div className="field full"><label>Date and time</label><input required type="datetime-local" value={calendarQuick.scheduledAt} onChange={(e) => setCalendarQuick({...calendarQuick,scheduledAt:e.target.value})}/></div><div className="field full"><label>Details (optional)</label><textarea rows={3} value={calendarQuick.note} onChange={(e) => setCalendarQuick({...calendarQuick,note:e.target.value})}/></div></div>{calendarQuick.kind === "task" && <p className="calendar-quick-note">The task starts in the project’s default workflow column and is assigned to you when possible. You can edit all details afterward.</p>}</div><div className="modal-actions"><button type="button" className="button button-secondary" onClick={() => setCalendarQuickOpen(false)}>Cancel</button><button className="button button-primary" disabled={saving}>{saving?"Creating…":calendarQuick.kind === "task"?"Create task":"Create reminder"}</button></div></form></div>}
         {selected && (
-          <div className="task-drawer-scrim" onClick={() => setSelected(null)}>
+          <div className="task-drawer-scrim" onClick={closeTask}>
             <aside className="task-drawer" onClick={(e) => e.stopPropagation()}>
               <header>
                 <div>
@@ -1510,7 +1527,7 @@ export default function ProjectWorkspace() {
                 </div>
                 <button
                   className="icon-button"
-                  onClick={() => setSelected(null)}
+                  onClick={closeTask}
                 >
                   <X size={18} />
                 </button>
@@ -1540,9 +1557,11 @@ export default function ProjectWorkspace() {
                   />
                 </div>
                 <div className="field">
-                  <label>Description</label>
+                  <label htmlFor="task-detail-description">Description</label>
                   <textarea
-                    rows={4}
+                    id="task-detail-description"
+                    className="task-detail-description"
+                    rows={12}
                     value={selected.description || ""}
                     onChange={(e) =>
                       setSelected({ ...selected, description: e.target.value })

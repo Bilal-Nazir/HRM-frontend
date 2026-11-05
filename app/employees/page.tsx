@@ -6,6 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import { Employee } from "@/types";
 import { Plus, Search, UserPlus, Users, X } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
 const emptyForm = { firstName:"", lastName:"", workEmail:"", password:"", jobTitle:"", employmentType:"full-time", phone:"", personalEmail:"", timezone:"", employmentStatus:"active" };
@@ -13,6 +14,7 @@ const emptyForm = { firstName:"", lastName:"", workEmail:"", password:"", jobTit
 const statusFilters = ["all", "active", "invited", "suspended", "terminated"] as const;
 
 export default function EmployeesPage() {
+  const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [statusFilter, setStatusFilter] = useState<(typeof statusFilters)[number]>("all");
   const [search, setSearch] = useState("");
@@ -58,7 +60,20 @@ export default function EmployeesPage() {
     <section className="card" style={{marginBottom:20}}><div className="card-header"><div><h2>Teams</h2><p>Create teams now and add employees later. Assign a lead whenever one is available.</p></div><button className="button button-secondary" onClick={()=>setTeamModal(true)}><Users size={16}/>Create team</button></div><div className="filter-chips" style={{padding:"0 20px 18px",margin:0}}>{teams.length?teams.map(team=><span key={team.id} className="status-pill status-active">{team.name}{team.leadEmployeeId?` · ${employees.find(e=>e.id===team.leadEmployeeId)?.firstName || "Lead assigned"}`:" · No lead yet"}</span>):<span>No teams created yet.</span>}</div></section>
     <section className="card">
       {loading && <div className="loading-line"/>}
-      {!loading && visibleEmployees.length===0 ? <EmptyState title="No employees found" description="Add your first employee or adjust the current search and filters."/> : <div className="table-wrap"><table><thead><tr><th>Employee</th><th>Employee ID</th><th>Role / title</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead><tbody>{visibleEmployees.map(employee=><tr key={employee.id}><td><div className="person-cell"><div className="avatar">{employee.firstName[0]}{employee.lastName[0]}</div><div><Link href={`/admin/employees/${employee.id}`}><strong>{employee.firstName} {employee.lastName}</strong></Link><span>{employee.workEmail}</span></div></div></td><td>{employee.employeeCode}</td><td>{employee.jobTitle || "—"}</td><td style={{textTransform:"capitalize"}}>{employee.employmentType || "—"}</td><td><StatusPill value={employee.employmentStatus}/></td><td><div className="admin-table-actions"><Link className="button button-secondary" href={`/admin/employees/${employee.id}`}>Profile</Link><button className="button button-secondary" disabled={saving} onClick={()=>startEdit(employee)}>Edit</button><button className="button button-secondary" disabled={saving} onClick={()=>void archive(employee)}>Delete</button></div></td></tr>)}</tbody></table></div>}
+      {!loading && visibleEmployees.length===0 ? <EmptyState title="No employees found" description="Add your first employee or adjust the current search and filters."/> : <div className="table-wrap"><table><thead><tr><th>Employee</th><th>Employee ID</th><th>Role / title</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead><tbody>{visibleEmployees.map(employee=><tr
+        key={employee.id}
+        className="employee-directory-row"
+        tabIndex={0}
+        title={`Open ${employee.firstName} ${employee.lastName}'s profile`}
+        onClick={(event) => {
+          if ((event.target as HTMLElement).closest("a,button,input,select,textarea")) return;
+          router.push(`/admin/employees/${employee.id}`);
+        }}
+        onKeyDown={(event) => {
+          if (event.target !== event.currentTarget) return;
+          if (event.key === "Enter" || event.key === " ") { event.preventDefault(); router.push(`/admin/employees/${employee.id}`); }
+        }}
+      ><td><div className="person-cell"><div className="avatar">{employee.firstName[0]}{employee.lastName[0]}</div><div><Link href={`/admin/employees/${employee.id}`}><strong>{employee.firstName} {employee.lastName}</strong></Link><span>{employee.workEmail}</span></div></div></td><td>{employee.employeeCode}</td><td>{employee.jobTitle || "—"}</td><td style={{textTransform:"capitalize"}}>{employee.employmentType || "—"}</td><td><StatusPill value={employee.employmentStatus}/></td><td><div className="admin-table-actions" onClick={(event) => event.stopPropagation()}><button className="button button-secondary" disabled={saving} onClick={()=>startEdit(employee)}>Edit</button><button className="button button-secondary" disabled={saving} onClick={()=>void archive(employee)}>Delete</button></div></td></tr>)}</tbody></table></div>}
     </section>
 
     {modal && <div className="modal-backdrop"><form className="modal" onSubmit={create}><div className="modal-header"><div><h2>{editing ? "Edit employee" : "Add employee"}</h2><p>{editing ? "Update their profile details." : "Create their profile and initial login account."}</p></div><button type="button" className="icon-button" onClick={()=>setModal(false)}><X size={18}/></button></div><div className="modal-body">{error&&<ErrorBanner message={error}/>}<div className="form-grid">

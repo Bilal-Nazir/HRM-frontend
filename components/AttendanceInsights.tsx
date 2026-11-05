@@ -7,7 +7,7 @@ export type AttendanceSummary = {
   totalWorkedHours: number;
   buckets: { atLeastEightHours: number; fiveToUnderEightHours: number; underFiveHours: number };
   flags: { lateCheckIns: number; earlyCheckOuts: number; outsideOfficeArea: number };
-  daily: { id: string; employeeId: string; workDate: string; checkInAt: string; checkOutAt?: string; workedHours: number; flags: string[] }[];
+  daily: { id: string; employeeId: string; workDate: string; checkInAt: string; checkOutAt?: string; checkInLocation?: Attendance["checkInLocation"]; checkOutLocation?: Attendance["checkOutLocation"]; checkInWithinGeofence?: boolean; checkOutWithinGeofence?: boolean; workedHours: number; flags: string[] }[];
 };
 
 export function AttendanceLocation({ record }: { record: Attendance }) {

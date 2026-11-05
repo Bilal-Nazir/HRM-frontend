@@ -6,7 +6,8 @@ import { AttendanceInsights, AttendanceSummary } from "@/components/AttendanceIn
 import { api } from "@/lib/api";
 import { useLiveData } from "@/lib/useLiveData";
 import { errorMessage } from "@/lib/workspace";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
+import EmployeeActivityDashboard from "@/components/EmployeeActivityDashboard";
 
 type Schedule = { timezone: string; weeklyPattern: { day: number; startTime: string; endTime: string; working: boolean }[] };
 const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -39,6 +40,7 @@ export default function AdminAttendancePage() {
         </form>
       </section>
       <AdminAttendance />
+      <Suspense fallback={<div className="loading-line" />}><EmployeeActivityDashboard /></Suspense>
     </AppShell>
   );
 }

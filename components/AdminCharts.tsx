@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
-import { ReactNode } from "react";
+import { ReactNode, useId } from "react";
 
 const formatChartDate = (value: string, includeYear = false) =>
   new Intl.DateTimeFormat("en-US", {
@@ -83,12 +83,13 @@ export function Sparkline({ data, color }: { data: { day: string; value: number 
 }
 
 export function TrendAreaChart({ data, label, suffix = "" }: { data: { day: string; value: number }[]; label: string; suffix?: string }) {
+  const gradientId = `trend-${useId().replaceAll(":", "")}`;
   return (
-    <div className="chart-area">
+    <div className="chart-area" style={{ width: "100%", height: 260, minWidth: 0, padding: "6px 16px 16px" }} role="img" aria-label={`${label}: ${data.map((point) => `${point.day}: ${point.value}${suffix}`).join(", ")}`}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 10, right: 16, bottom: 0, left: -16 }}>
           <defs>
-            <linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.28} />
               <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
             </linearGradient>
@@ -103,7 +104,7 @@ export function TrendAreaChart({ data, label, suffix = "" }: { data: { day: stri
             labelFormatter={(value: any) => formatChartDate(value, true)}
             contentStyle={{ borderRadius: 12, border: "1px solid #dfe9e5", fontSize: 12 }}
           />
-          <Area type="monotone" dataKey="value" stroke="var(--primary)" strokeWidth={2.5} fill="url(#trend-fill)" />
+          <Area type="monotone" dataKey="value" stroke="var(--primary)" strokeWidth={2.5} fill={`url(#${gradientId})`} dot={data.length === 1 ? { r: 4 } : false} />
         </AreaChart>
       </ResponsiveContainer>
     </div>

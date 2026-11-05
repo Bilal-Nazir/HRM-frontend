@@ -1,0 +1,78 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Activity, CalendarDays, CheckCircle2, Clock3, Download, ListChecks, MessageSquare, Palmtree, Search, Timer, UserRound } from "lucide-react";
+import { api, ApiError } from "@/lib/api";
+import { EmptyState, ErrorBanner } from "@/components/ui";
+
+type Option = { id: string; name?: string; key?: string; firstName?: string; lastName?: string; employeeCode?: string; jobTitle?: string; teamId?: string };
+type Report = {
+  employee: { id: string; firstName: string; lastName: string; employeeCode: string; jobTitle?: string };
+  range: { from: string; to: string };
+  summary: { attendanceHours: number; attendanceSessions: number; workingDays: number; lateCheckIns: number; earlyCheckOuts: number; trackedTaskHours: number; totalTasks: number; completedTasks: number; overdueTasks: number; openRequests: number; mentionsReceived: number };
+  attendance: { id: string; workDate: string; checkInAt: string; checkOutAt?: string; checkInLocation?: LocationPoint; checkOutLocation?: LocationPoint; checkInWithinGeofence?: boolean; checkOutWithinGeofence?: boolean; status: string; workedHours: number; flags: string[] }[];
+  tasks: { id: string; key: string; title: string; priority: string; dueDate?: string; status?: { name: string; category: string }; project?: { name: string; key: string }; assigned: boolean; reported: boolean; trackedSeconds: number; previouslyRecordedSeconds: number; timerSessions: TimerSession[]; running: boolean }[];
+  requests: { id: string; kind: string; startDate: string; endDate: string; totalDays: number; reason?: string; status: string; managerComment?: string; reviewComment?: string; createdAt: string }[];
+  comments: { id: string; body: string; authored: boolean; mentioned: boolean; createdAt: string; task?: { key: string; title: string }; project?: { name: string } }[];
+  timeline: { id: string; type: string; at: string; title: string; detail?: string; project?: { name: string } }[];
+};
+type LocationPoint = { latitude: number; longitude: number; accuracyMeters?: number; address?: string };
+type TimerSession = { id: string; startedAt: string; endedAt?: string; durationSeconds: number; stopReason?: string; running: boolean };
+type View = "overview" | "timeline" | "attendance" | "tasks" | "requests" | "communication";
+
+const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+const hours = (seconds: number) => `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+const time = (value?: string) => value ? new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }) : "Open";
+const LocationLink = ({ point }: { point?: LocationPoint }) => point ? <div className="recorded-session-location">{point.address && <span>{point.address}</span>}<a href={`https://www.google.com/maps?q=${point.latitude},${point.longitude}`} target="_blank" rel="noreferrer">{point.latitude.toFixed(5)}, {point.longitude.toFixed(5)}</a></div> : <span className="activity-location-missing">Not captured</span>;
+
+export default function EmployeeActivityDashboard() {
+  const router = useRouter(), pathname = usePathname(), params = useSearchParams();
+  const today = useMemo(() => new Date(), []);
+  const [employees, setEmployees] = useState<Option[]>([]), [teams, setTeams] = useState<Option[]>([]), [projects, setProjects] = useState<Option[]>([]);
+  const [employeeId, setEmployeeId] = useState(params.get("employee") || ""), [teamId, setTeamId] = useState(params.get("team") || ""), [projectId, setProjectId] = useState(params.get("project") || "");
+  const [from, setFrom] = useState(params.get("from") || dateKey(new Date(today.getFullYear(), today.getMonth(), 1))), [to, setTo] = useState(params.get("to") || dateKey(today));
+  const requestedView = params.get("activityView") as View | null;
+  const [view, setView] = useState<View>(requestedView && ["overview", "timeline", "attendance", "tasks", "requests", "communication"].includes(requestedView) ? requestedView : "overview");
+  const [report, setReport] = useState<Report | null>(null), [loading, setLoading] = useState(false), [error, setError] = useState("");
+  const updateUrl = (updates: Record<string, string>) => { const query = new URLSearchParams(params.toString()); Object.entries(updates).forEach(([key, value]) => value ? query.set(key, value) : query.delete(key)); router.replace(`${pathname}?${query.toString()}`, { scroll: false }); };
+
+  useEffect(() => { api.get<{ employees: Option[]; teams: Option[]; projects: Option[] }>("/attendance/activity-options").then((data) => { setEmployees(data.employees); setTeams(data.teams); setProjects(data.projects); if (!employeeId && data.employees[0]) { setEmployeeId(data.employees[0].id); updateUrl({ employee: data.employees[0].id, from, to }); } }).catch((e) => setError(e instanceof ApiError ? e.message : "Could not load activity filters")); }, []);
+  useEffect(() => { if (!employeeId) return; setLoading(true); setError(""); api.get<Report>(`/attendance/employee-activity?employeeId=${employeeId}&from=${from}&to=${to}${projectId ? `&projectId=${projectId}` : ""}`).then(setReport).catch((e) => setError(e instanceof ApiError ? e.message : "Could not load employee activity")).finally(() => setLoading(false)); }, [employeeId, from, to, projectId]);
+  const visibleEmployees = useMemo(() => teamId ? employees.filter((employee) => employee.teamId === teamId) : employees, [employees, teamId]);
+  const chooseTeam = (value: string) => { setTeamId(value); const available = value ? employees.filter((employee) => employee.teamId === value) : employees; const nextEmployee = available.some((employee) => employee.id === employeeId) ? employeeId : available[0]?.id || ""; setEmployeeId(nextEmployee); updateUrl({ team: value, employee: nextEmployee }); };
+  const chooseEmployee = (value: string) => { setEmployeeId(value); updateUrl({ employee: value }); };
+  const chooseView = (value: View) => { setView(value); updateUrl({ activityView: value }); };
+  const exportCsv = () => { if (!report) return; const rows = [["Type", "Date", "Item", "Status/Hours"], ...report.attendance.map((row) => ["Attendance", row.workDate, `${time(row.checkInAt)} - ${time(row.checkOutAt)}`, String(row.workedHours)]), ...report.tasks.map((row) => ["Task", row.dueDate || "", `${row.key} ${row.title}`, row.status?.name || ""]), ...report.requests.map((row) => ["Request", row.createdAt, row.kind, row.status])]; const csv = rows.map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n"); const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); link.download = `${report.employee.employeeCode}-activity-${from}-${to}.csv`; link.click(); URL.revokeObjectURL(link.href); };
+  const cards = report ? [
+    ["Attendance hours", `${report.summary.attendanceHours.toFixed(1)}h`, `${report.summary.attendanceSessions} sessions`, Clock3],
+    ["Tracked task total", `${report.summary.trackedTaskHours.toFixed(1)}h`, "Current lifetime task totals", Timer],
+    ["Working days", report.summary.workingDays, `${report.summary.lateCheckIns} late · ${report.summary.earlyCheckOuts} early`, CalendarDays],
+    ["Related tasks", report.summary.totalTasks, `${report.summary.completedTasks} done · ${report.summary.overdueTasks} overdue`, ListChecks],
+    ["Open requests", report.summary.openRequests, "Awaiting final decision", Palmtree],
+    ["Mentions received", report.summary.mentionsReceived, "Within selected dates", MessageSquare],
+  ] as const : [];
+  const attendanceDays = useMemo(() => { const grouped = new Map<string, Report["attendance"]>(); report?.attendance.forEach((session) => grouped.set(session.workDate, [...(grouped.get(session.workDate) || []), session])); return [...grouped.entries()].map(([date, sessions]) => ({ date, sessions, totalHours: sessions.reduce((sum, session) => sum + session.workedHours, 0), flags: [...new Set(sessions.flatMap((session) => session.flags))] })); }, [report]);
+
+  return <section className="employee-activity-dashboard">
+    <div className="employee-activity-heading"><div><span className="section-kicker">Unified employee activity</span><h2>Work activity explorer</h2><p>Filter attendance, tasks, requests, comments, mentions and project events for one employee.</p></div><button className="button button-secondary" disabled={!report} onClick={exportCsv}><Download size={15}/>Export CSV</button></div>
+    <div className="employee-activity-filters">
+      <label><span>Team</span><select value={teamId} onChange={(e) => chooseTeam(e.target.value)}><option value="">All teams</option>{teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
+      <label className="employee-filter-main"><span>Employee</span><select value={employeeId} onChange={(e) => chooseEmployee(e.target.value)}><option value="">Choose employee</option>{visibleEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName} · {employee.employeeCode}</option>)}</select></label>
+      <label><span>Project</span><select value={projectId} onChange={(e) => { setProjectId(e.target.value); updateUrl({ project: e.target.value }); }}><option value="">All projects</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.key} · {project.name}</option>)}</select></label>
+      <label><span>From</span><input type="date" value={from} max={to} onChange={(e) => { setFrom(e.target.value); updateUrl({ from: e.target.value }); }}/></label>
+      <label><span>To</span><input type="date" value={to} min={from} onChange={(e) => { setTo(e.target.value); updateUrl({ to: e.target.value }); }}/></label>
+    </div>
+    {error && <ErrorBanner message={error}/>} {loading && <div className="loading-line"/>}
+    {report && <>
+      <div className="employee-activity-person"><div className="avatar"><UserRound size={18}/></div><div><strong>{report.employee.firstName} {report.employee.lastName}</strong><span>{report.employee.employeeCode}{report.employee.jobTitle ? ` · ${report.employee.jobTitle}` : ""}</span></div><small>{report.range.from} → {report.range.to}</small></div>
+      <div className="employee-activity-tabs">{(["overview", "timeline", "attendance", "tasks", "requests", "communication"] as View[]).map((item) => <button key={item} className={view === item ? "active" : ""} onClick={() => chooseView(item)}>{item}</button>)}</div>
+      {view === "overview" && <div className="employee-activity-stats">{cards.map(([label, value, note, Icon]) => <article key={label}><Icon/><span>{label}</span><strong>{value}</strong><small>{note}</small></article>)}</div>}
+      {view === "timeline" && <div className="employee-activity-timeline">{report.timeline.map((event) => <article key={event.id}><i/><div><strong>{event.title}</strong><span>{[event.detail, event.project?.name].filter(Boolean).join(" · ")}</span></div><time>{new Date(event.at).toLocaleString([], { hour12: true })}</time></article>)}{!report.timeline.length && <EmptyState title="No activity" description="No events were recorded during this range."/>}</div>}
+      {view === "attendance" && <div className="attendance-day-groups">{attendanceDays.map((day) => <article key={day.date} className="attendance-day-group"><header><div><strong>{new Date(`${day.date}T00:00:00`).toLocaleDateString([], { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</strong><span>{day.sessions.length} session{day.sessions.length === 1 ? "" : "s"}</span></div><div><b>{day.totalHours.toFixed(2)}h</b><small>{day.flags.length ? day.flags.join(", ").replaceAll("_", " ") : "On track"}</small></div></header><div className="table-wrap"><table><thead><tr><th>Session</th><th>Check in</th><th>Check-in location</th><th>Check out</th><th>Check-out location</th><th>Hours</th><th>Status</th></tr></thead><tbody>{day.sessions.map((session, index) => <tr key={session.id}><td>#{index + 1}</td><td>{time(session.checkInAt)}</td><td><LocationLink point={session.checkInLocation}/></td><td>{time(session.checkOutAt)}</td><td><LocationLink point={session.checkOutLocation}/></td><td>{session.workedHours.toFixed(2)}h</td><td>{session.status}</td></tr>)}</tbody></table></div></article>)}{!attendanceDays.length && <EmptyState title="No attendance" description="No attendance sessions match these filters."/>}</div>}
+      {view === "tasks" && <div className="employee-task-history">{report.tasks.map((task) => <article key={task.id}><header><div><strong>{task.key} · {task.title}</strong><span>{task.project?.name || "No project"} · {task.status?.name || "No status"} · {task.assigned ? "Assignee" : "Reporter"}</span></div><div><b>{hours(task.trackedSeconds)}</b><small>{task.timerSessions.length} recorded session{task.timerSessions.length === 1 ? "" : "s"}</small></div></header>{task.previouslyRecordedSeconds > 0 && <p className="previous-time-note">{hours(task.previouslyRecordedSeconds)} was recorded before detailed timer-session tracking and cannot be split into historical intervals.</p>}<div className="table-wrap"><table><thead><tr><th>Session</th><th>Started</th><th>Stopped</th><th>Duration</th><th>Reason</th></tr></thead><tbody>{task.timerSessions.map((session, index) => <tr key={session.id}><td>#{index + 1}</td><td>{new Date(session.startedAt).toLocaleString([], { hour12: true })}</td><td>{session.endedAt ? new Date(session.endedAt).toLocaleString([], { hour12: true }) : "Running"}</td><td>{hours(session.durationSeconds)}</td><td>{session.running ? "Active" : session.stopReason?.replaceAll("_", " ") || "Stopped"}</td></tr>)}</tbody></table>{!task.timerSessions.length && <div className="task-history-empty">No detailed timer sessions recorded yet.</div>}</div></article>)}{!report.tasks.length && <EmptyState title="No related tasks" description="No assigned, reported, or timed tasks match these filters."/>}</div>}
+      {view === "requests" && <div className="employee-activity-list">{report.requests.map((request) => <article key={request.id}><div><strong>{request.kind.replaceAll("_", " ")}</strong><span>{new Date(request.startDate).toLocaleDateString()} – {new Date(request.endDate).toLocaleDateString()} · {request.totalDays} days</span><small>{request.reason || "No reason supplied"}</small></div><b className={`status-${request.status}`}>{request.status}</b></article>)}{!report.requests.length && <EmptyState title="No requests" description="No requests were submitted in this range."/>}</div>}
+      {view === "communication" && <div className="employee-activity-list">{report.comments.map((comment) => <article key={comment.id}><div><strong>{comment.authored ? "Commented" : "Mentioned"} on {comment.task?.key || "task"}</strong><span>{comment.project?.name} · {new Date(comment.createdAt).toLocaleString([], { hour12: true })}</span><small>{comment.body}</small></div><b>{comment.authored ? "Sent" : "Received"}</b></article>)}{!report.comments.length && <EmptyState title="No communication" description="No comments or mentions match this range."/>}</div>}
+    </>}
+  </section>;
+}
