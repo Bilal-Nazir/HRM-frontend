@@ -94,9 +94,11 @@ export default function AttendancePage() {
       );
       setSuccess(
         openRecord
-          ? "Checked out successfully. Your location was recorded."
+          ? "Checked out successfully. Your location was recorded and running task timers were paused."
           : "Checked in successfully. Your location was recorded.",
       );
+      window.dispatchEvent(new Event("hrm:attendance-change"));
+      localStorage.setItem("hrm_attendance_changed", String(Date.now()));
     } catch (error) {
       setActionError(errorMessage(error));
     } finally {

@@ -33,8 +33,8 @@ export default function CheckoutConfirmation({
       </div>
       <div className="modal-body">
         <p>
-          Your current session will end. You can check in again when you resume
-          work.
+          Your current session will end and your running task timers will be
+          paused automatically. You can check in again when you resume work.
         </p>
       </div>
       <div className="modal-actions">

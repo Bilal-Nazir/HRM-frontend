@@ -207,6 +207,31 @@ export default function ProjectWorkspace() {
     load();
   }, [load]);
   useEffect(() => {
+    if (loading) return;
+    let cancelled = false, refreshing = false;
+    const refreshTimers = async () => {
+      if (document.hidden || refreshing) return;
+      refreshing = true;
+      try {
+        const result = await api.get<{ tasks: ProjectTask[] }>(`/projects/${projectId}/tasks?size=200`);
+        if (cancelled) return;
+        const serverTasks = new Map(result.tasks.map((task) => [task.id, task]));
+        const timerFields = (task: ProjectTask) => ({ timeStartedAt: task.timeStartedAt, timeStoppedAt: task.timeStoppedAt, accumulatedSeconds: task.accumulatedSeconds });
+        setTasks((rows) => rows.map((task) => serverTasks.has(task.id) ? { ...task, ...timerFields(serverTasks.get(task.id)!) } : task));
+        setSelected((task) => task && serverTasks.has(task.id) ? { ...task, ...timerFields(serverTasks.get(task.id)!) } : task);
+      } catch { /* Keep the current board when a background refresh fails. */ }
+      finally { refreshing = false; }
+    };
+    const timer = setInterval(() => { void refreshTimers(); }, 15000);
+    const refresh = () => { void refreshTimers(); };
+    const storageRefresh = (event: StorageEvent) => { if (event.key === "hrm_attendance_changed") refresh(); };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("hrm:attendance-change", refresh);
+    window.addEventListener("storage", storageRefresh);
+    return () => { cancelled = true; clearInterval(timer); window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); window.removeEventListener("hrm:attendance-change", refresh); window.removeEventListener("storage", storageRefresh); };
+  }, [projectId, loading]);
+  useEffect(() => {
     const requested = searchParams.get("view") as Tab | null;
     const fallback = tabs.some((item) => item.id === inferred) ? inferred : "overview";
     setTab(requested && tabs.some((item) => item.id === requested) ? requested : fallback);

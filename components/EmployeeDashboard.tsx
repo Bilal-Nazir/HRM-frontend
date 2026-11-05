@@ -126,9 +126,11 @@ export default function EmployeeDashboard() {
       );
       setActionSuccess(
         open
-          ? "Checked out successfully."
+          ? "Checked out successfully. Your running task timers were paused."
           : "Checked in successfully. Your location was recorded.",
       );
+      window.dispatchEvent(new Event("hrm:attendance-change"));
+      localStorage.setItem("hrm_attendance_changed", String(Date.now()));
       setNow(new Date());
     } catch (err) {
       setActionError(errorMessage(err));
