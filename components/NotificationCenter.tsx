@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { useLiveData } from "@/lib/useLiveData";
+import { notificationHref } from "@/lib/taskLinks";
 
 type Notification = {
   id: string;
@@ -12,6 +13,8 @@ type Notification = {
   title: string;
   message: string;
   href: string;
+  projectId?: string;
+  taskId?: string;
   readAt?: string;
   createdAt: string;
 };
@@ -97,16 +100,11 @@ export default function NotificationCenter({ isAdmin }: { isAdmin: boolean }) {
     if (next) playChime();
   };
 
-  const destination = (href: string) => {
-    if (!isAdmin || href.startsWith("/admin")) return href;
-    return `/admin${href}`;
-  };
-
   const visit = async (notification: Notification) => {
-    if (!notification.readAt) await api.patch(`/notifications/${notification.id}/read`);
+    if (!notification.readAt) await api.patch(`/notifications/${notification.id}/read`).catch(() => {});
     setOpen(false);
     refresh();
-    router.push(destination(notification.href));
+    router.push(notificationHref(notification, isAdmin));
   };
 
   const markAllRead = async () => {

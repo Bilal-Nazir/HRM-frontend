@@ -22,6 +22,17 @@ export type Department = {
   status: string;
 };
 
+export type AttendanceDevice = {
+  capturedAt: string;
+  deviceType: "desktop" | "mobile" | "tablet" | "unknown";
+  browser?: string; browserVersion?: string; os?: string; osVersion?: string;
+  userAgent?: string; ipAddress?: string; connectionIp?: string;
+  platform?: string; platformVersion?: string; model?: string; architecture?: string; bitness?: string;
+  timezone?: string; language?: string;
+  screenWidth?: number; screenHeight?: number; viewportWidth?: number; viewportHeight?: number; pixelRatio?: number;
+  touchPoints?: number; logicalProcessors?: number; memoryGB?: number;
+};
+
 export type Attendance = {
   employee?: { name: string; employeeCode: string } | null;
   id: string;
@@ -29,6 +40,8 @@ export type Attendance = {
   workDate: string;
   checkInAt: string;
   checkOutAt?: string;
+  checkInDevice?: AttendanceDevice;
+  checkOutDevice?: AttendanceDevice;
   status: string;
   checkInWithinGeofence?: boolean;
   checkOutWithinGeofence?: boolean;

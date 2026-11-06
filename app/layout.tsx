@@ -4,6 +4,8 @@ import "./workspace-content.css";
 import "./attendance-theme.css";
 import "./themes.css";
 import "./projects.css";
+import "./task-details.css";
+import "./attendance-devices.css";
 
 export const metadata: Metadata = {
   title: "Be My Admin",

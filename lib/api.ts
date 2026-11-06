@@ -1,3 +1,5 @@
+import { taskReturnPath } from "@/lib/taskLinks";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 type ApiEnvelope<T> = {
@@ -50,8 +52,11 @@ export async function apiRequest<T>(
     localStorage.removeItem("hrm_token");
     localStorage.removeItem("hrm_refresh_token");
     localStorage.removeItem("hrm_user");
-    if (typeof window !== "undefined")
-      window.location.assign(window.location.pathname.startsWith("/admin") ? "/admin/login" : "/login");
+    if (typeof window !== "undefined") {
+      const admin = window.location.pathname.startsWith("/admin");
+      const next = taskReturnPath(`${window.location.pathname}${window.location.search}`, admin);
+      window.location.assign(`${admin ? "/admin/login" : "/login"}${next ? `?next=${encodeURIComponent(next)}` : ""}`);
+    }
   }
   if (!response.ok) {
     throw new ApiError(body.message || "Request failed", response.status, (body.data || {}) as Record<string, unknown>);

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { taskReturnPath } from "@/lib/taskLinks";
 
 const employeePages = [
   "/dashboard",
@@ -23,10 +24,10 @@ export function middleware(request: NextRequest) {
   );
 
   if (isAdminPage && accountType === "employee") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL(taskReturnPath(`${pathname}${request.nextUrl.search}`, false) || "/dashboard", request.url));
   }
   if (isEmployeePage && accountType === "admin") {
-    return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+    return NextResponse.redirect(new URL(taskReturnPath(`${pathname}${request.nextUrl.search}`, true) || "/admin/dashboard", request.url));
   }
 
   return NextResponse.next();

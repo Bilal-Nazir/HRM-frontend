@@ -16,6 +16,7 @@ import { captureAttendanceLocation, errorMessage } from "@/lib/workspace";
 import AppShell from "@/components/AppShell";
 import { EmptyState, ErrorBanner, StatCard, StatusPill } from "@/components/ui";
 import { api } from "@/lib/api";
+import { captureAttendanceDevice } from "@/lib/attendanceDevice";
 import { Attendance, Employee } from "@/types";
 import { AttendanceInsights, AttendanceSummary, AttendanceLocation } from "@/components/AttendanceInsights";
 import DashboardEngagement from "@/components/DashboardEngagement";
@@ -122,7 +123,7 @@ export default function EmployeeDashboard() {
       const location = await captureAttendanceLocation();
       await api.post(
         open ? "/attendance/check-out" : "/attendance/check-in",
-        location,
+        { ...location, device: await captureAttendanceDevice().catch(() => ({})) },
       );
       setActionSuccess(
         open

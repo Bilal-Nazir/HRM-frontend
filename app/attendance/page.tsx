@@ -9,6 +9,7 @@ import {
   StatusPill,
 } from "@/components/ui";
 import { api } from "@/lib/api";
+import { captureAttendanceDevice } from "@/lib/attendanceDevice";
 import { captureAttendanceLocation, errorMessage } from "@/lib/workspace";
 import { useClientClock } from "@/lib/useClientClock";
 import { Attendance } from "@/types";
@@ -90,7 +91,7 @@ export default function AttendancePage() {
       submitted = true;
       await api.post(
         openRecord ? "/attendance/check-out" : "/attendance/check-in",
-        location,
+        { ...location, device: await captureAttendanceDevice().catch(() => ({})) },
       );
       setSuccess(
         openRecord

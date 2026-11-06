@@ -2,7 +2,6 @@
 
 import {
   Activity,
-  AtSign,
   BellRing,
   Bookmark,
   Archive,
@@ -16,13 +15,10 @@ import {
   CircleDot,
   Clock3,
   Columns3,
-  Download,
   Equal,
   FileUp,
   ListChecks,
-  MessageSquare,
   MoreHorizontal,
-  Paperclip,
   Pencil,
   Plus,
   Search,
@@ -48,12 +44,11 @@ import { EmptyState, ErrorBanner, StatusPill } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { useClientClock } from "@/lib/useClientClock";
+import { taskDetailsHref } from "@/lib/taskLinks";
 import {
   Employee,
   Project,
   ProjectActivity,
-  ProjectAttachment,
-  ProjectComment,
   ProjectMember,
   ProjectReminder,
   ProjectTask,
@@ -140,14 +135,8 @@ export default function ProjectWorkspace() {
     [memberModal, setMemberModal] = useState(false),
     [workflowModal, setWorkflowModal] = useState(false),
     [editingColumn, setEditingColumn] = useState<WorkflowStatus | null>(null),
-    [selected, setSelected] = useState<ProjectTask | null>(null),
-    [comments, setComments] = useState<ProjectComment[]>([]),
-    [attachments, setAttachments] = useState<ProjectAttachment[]>([]),
     [reminders, setReminders] = useState<ProjectReminder[]>([]),
     [pendingFiles, setPendingFiles] = useState<File[]>([]),
-    [comment, setComment] = useState(""),
-    [mentionedEmployeeIds, setMentionedEmployeeIds] = useState<string[]>([]),
-    [mentionQuery, setMentionQuery] = useState<string | null>(null),
     [calendarQuickOpen, setCalendarQuickOpen] = useState(false),
     [calendarQuick, setCalendarQuick] = useState({ kind: "task" as "task" | "reminder", title: "", note: "", scheduledAt: "" }),
     [saving, setSaving] = useState(false),
@@ -169,7 +158,6 @@ export default function ProjectWorkspace() {
       timerAction: "none" as "none" | "start" | "stop",
     });
   const moving = useRef(new Set<string>());
-  const commentInput = useRef<HTMLTextAreaElement>(null);
   const cancelInlineEdit = useRef(false);
   const load = useCallback(async () => {
     setLoading(true);
@@ -218,7 +206,6 @@ export default function ProjectWorkspace() {
         const serverTasks = new Map(result.tasks.map((task) => [task.id, task]));
         const timerFields = (task: ProjectTask) => ({ timeStartedAt: task.timeStartedAt, timeStoppedAt: task.timeStoppedAt, accumulatedSeconds: task.accumulatedSeconds });
         setTasks((rows) => rows.map((task) => serverTasks.has(task.id) ? { ...task, ...timerFields(serverTasks.get(task.id)!) } : task));
-        setSelected((task) => task && serverTasks.has(task.id) ? { ...task, ...timerFields(serverTasks.get(task.id)!) } : task);
       } catch { /* Keep the current board when a background refresh fails. */ }
       finally { refreshing = false; }
     };
@@ -409,39 +396,11 @@ export default function ProjectWorkspace() {
       setSaving(false);
     }
   };
-  const openTask = async (task: ProjectTask) => {
-    setSelected(task);
-    try {
-      const d = await api.get<{
-        task: ProjectTask;
-        comments: ProjectComment[];
-        attachments: ProjectAttachment[];
-      }>(`/projects/${projectId}/tasks/${task.id}`);
-      setSelected({ ...task, ...d.task });
-      setComments(d.comments);
-      setAttachments(d.attachments || []);
-    } catch {
-      setComments([]);
-      setAttachments([]);
-    }
-  };
+  const openTask = (task: ProjectTask) => router.push(`${taskDetailsHref(projectId, task.id, admin)}?from=${encodeURIComponent(`${pathname}${searchParams.size ? `?${searchParams}` : ""}`)}`);
   const requestedTaskId = searchParams.get("task");
   useEffect(() => {
-    if (!requestedTaskId || loading || !project) return;
-    let cancelled = false;
-    api.get<{ task: ProjectTask; comments: ProjectComment[]; attachments: ProjectAttachment[] }>(`/projects/${projectId}/tasks/${requestedTaskId}`)
-      .then((data) => { if (!cancelled) { setSelected(data.task); setComments(data.comments || []); setAttachments(data.attachments || []); } })
-      .catch((err) => { if (!cancelled) setError(err instanceof ApiError ? err.message : "Could not open linked task"); });
-    return () => { cancelled = true; };
-  }, [requestedTaskId, loading, projectId, project]);
-  const closeTask = () => {
-    setSelected(null);
-    if (requestedTaskId) {
-      const query = new URLSearchParams(window.location.search);
-      query.delete("task");
-      router.replace(`${pathname}?${query.toString()}`, { scroll: false });
-    }
-  };
+    if (requestedTaskId) router.replace(taskDetailsHref(projectId, requestedTaskId, admin));
+  }, [requestedTaskId, projectId, admin, router]);
   const beginInlineEdit = (task: ProjectTask) => {
     cancelInlineEdit.current = false;
     setTaskMenu(null);
@@ -472,7 +431,6 @@ export default function ProjectWorkspace() {
       await api.delete(`/projects/${projectId}/tasks/${task.id}`);
       setTasks((rows) => rows.filter((row) => row.id !== task.id));
       setDeletedTasks((rows) => [{ ...task, isDeleted: true }, ...rows]);
-      if (selected?.id === task.id) closeTask();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Could not delete task");
     }
@@ -492,118 +450,6 @@ export default function ProjectWorkspace() {
       setDeletedTasks((rows) => rows.filter((row) => row.id !== task.id));
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Could not permanently delete task");
-    }
-  };
-  const attachToSelected = async (files: FileList | null) => {
-    if (!selected || !files?.length) return;
-    setSaving(true);
-    try {
-      await uploadFiles(selected.id, Array.from(files));
-      await openTask(selected);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not upload attachment");
-    } finally {
-      setSaving(false);
-    }
-  };
-  const openAttachment = async (item: ProjectAttachment) => {
-    try {
-      const blob = await api.download(
-          `/projects/${projectId}/attachments/${item.id}`,
-        );
-      const url = URL.createObjectURL(blob);
-      if (item.mimeType.startsWith("image/") || item.mimeType === "application/pdf") {
-        window.open(url, "_blank", "noopener,noreferrer");
-        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      } else {
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = item.originalName;
-        link.click();
-        URL.revokeObjectURL(url);
-      }
-    } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "Could not download attachment",
-      );
-    }
-  };
-  const changeTimer = async (action: "start" | "pause") => {
-    if (!selected) return;
-    setSaving(true);
-    try {
-      const result = await api.patch<{ task: ProjectTask }>(`/projects/${projectId}/tasks/${selected.id}/timer`, { action });
-      const timerState = action === "pause" ? { timeStartedAt: undefined, timeStoppedAt: result.task.timeStoppedAt || new Date().toISOString() } : { timeStartedAt: result.task.timeStartedAt || new Date().toISOString(), timeStoppedAt: undefined };
-      setSelected({ ...selected, ...result.task, ...timerState });
-      setTasks((rows) => rows.map((task) => task.id === selected.id ? { ...task, ...result.task, ...timerState } : task));
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not update timer");
-    } finally {
-      setSaving(false);
-    }
-  };
-  const addComment = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!selected || !comment.trim()) return;
-    setSaving(true);
-    try {
-      const activeMentionIds = mentionedEmployeeIds.filter((id) => { const code = members.find((member) => member.employeeId === id)?.employee?.employeeCode; return code ? comment.includes(`@${code}`) : false; });
-      await api.post(`/projects/${projectId}/tasks/${selected.id}/comments`, {
-        body: comment,
-        mentionedEmployeeIds: activeMentionIds,
-      });
-      setComment("");
-      setMentionedEmployeeIds([]);
-      setMentionQuery(null);
-      await openTask(selected);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not add comment");
-    } finally {
-      setSaving(false);
-    }
-  };
-  const changeComment = (value: string, caret: number) => {
-    setComment(value);
-    const match = value.slice(0, caret).match(/(?:^|\s)@([\w-]*)$/);
-    setMentionQuery(match ? match[1] : null);
-  };
-  const mentionSuggestions = mentionQuery === null ? [] : members.filter((member) => {
-    const person = member.employee;
-    if (!person) return false;
-    const searchValue = `${person.firstName} ${person.lastName} ${person.employeeCode}`.toLowerCase();
-    return searchValue.includes(mentionQuery.toLowerCase());
-  }).slice(0, 6);
-  const insertMention = (member: ProjectMember) => {
-    if (!member.employee || !commentInput.current) return;
-    const caret = commentInput.current.selectionStart ?? comment.length;
-    const before = comment.slice(0, caret).replace(/@[\w-]*$/, `@${member.employee.employeeCode} `);
-    const next = before + comment.slice(caret);
-    setComment(next);
-    setMentionedEmployeeIds((ids) => [...new Set([...ids, member.employeeId])]);
-    setMentionQuery(null);
-    requestAnimationFrame(() => { commentInput.current?.focus(); commentInput.current?.setSelectionRange(before.length, before.length); });
-  };
-  const saveSelected = async () => {
-    if (!selected) return;
-    setSaving(true);
-    try {
-      await api.patch(`/projects/${projectId}/tasks/${selected.id}`, {
-        title: selected.title,
-        description: selected.description || "",
-        priority: selected.priority,
-        startDate: selected.startDate || null,
-        dueDate: selected.dueDate || null,
-        estimatedHours: selected.estimatedHours,
-        assigneeEmployeeIds: selected.assigneeEmployeeIds,
-      });
-      await load();
-      closeTask();
-    } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Could not update issue",
-      );
-    } finally {
-      setSaving(false);
     }
   };
   const addMembers = async () => {
@@ -967,13 +813,13 @@ export default function ProjectWorkspace() {
                           <article
                             role="button"
                             tabIndex={0}
-                            aria-selected={selected?.id === task.id}
                             draggable={project.status !== "archived" && inlineEditingTaskId !== task.id}
                             onDragStart={(e) =>
                               e.dataTransfer.setData("taskId", task.id)
                             }
                             onClick={() => openTask(task)}
                             onKeyDown={(e) => {
+                              if (e.target !== e.currentTarget) return;
                               if (e.key === "Enter" || e.key === " ") {
                                 e.preventDefault();
                                 openTask(task);
@@ -1002,6 +848,7 @@ export default function ProjectWorkspace() {
                             {taskMenu === task.id && (
                               <div className="task-card-menu" onClick={(event) => event.stopPropagation()}>
                                 <button type="button" onClick={() => { setTaskMenu(null); openTask(task); }}>Open task</button>
+                                <button type="button" onClick={() => { void navigator.clipboard.writeText(`${window.location.origin}${taskDetailsHref(projectId, task.id)}`).catch(() => setError("Could not copy task link")); setTaskMenu(null); }}>Copy link</button>
                                 <button type="button" onClick={() => { navigator.clipboard.writeText(task.key); setTaskMenu(null); }}>Copy key</button>
                                 <button type="button" className="danger" onClick={() => deleteTask(task)}><Trash2 size={14} />Delete task</button>
                               </div>
@@ -1279,7 +1126,7 @@ export default function ProjectWorkspace() {
                     <strong>{a.action.replaceAll(".", " ")}</strong>
                     <span>{new Date(a.createdAt).toLocaleString([], { hour12: true })}</span>
                   </div>
-                  {a.taskId && <small>Issue activity</small>}
+                  {a.taskId && <Link className="task-person-link" href={taskDetailsHref(projectId, a.taskId, admin, "history")}>View task history</Link>}
                 </article>
               ))}
               {!activities.length && (
@@ -1540,227 +1387,6 @@ export default function ProjectWorkspace() {
           </section>
         )}
         {calendarQuickOpen && <div className="modal-backdrop"><form className="modal project-modal calendar-quick-modal" onSubmit={createCalendarItem}><div className="modal-header"><div><h2>Add to calendar</h2><p>Create scheduled work or a shared project reminder.</p></div><button type="button" className="icon-button" onClick={() => setCalendarQuickOpen(false)}><X size={18}/></button></div><div className="modal-body">{error && <ErrorBanner message={error}/>}<div className="calendar-kind-picker"><button type="button" className={calendarQuick.kind === "task" ? "active" : ""} onClick={() => setCalendarQuick({...calendarQuick,kind:"task"})}><ListChecks size={18}/><span><strong>Task</strong><small>Add scheduled work to the board</small></span></button><button type="button" className={calendarQuick.kind === "reminder" ? "active" : ""} onClick={() => setCalendarQuick({...calendarQuick,kind:"reminder"})}><BellRing size={18}/><span><strong>Reminder</strong><small>Add a shared calendar reminder</small></span></button></div><div className="form-grid"><div className="field full"><label>{calendarQuick.kind === "task" ? "Task title" : "Reminder title"}</label><input required autoFocus value={calendarQuick.title} onChange={(e) => setCalendarQuick({...calendarQuick,title:e.target.value})}/></div><div className="field full"><label>Date and time</label><input required type="datetime-local" value={calendarQuick.scheduledAt} onChange={(e) => setCalendarQuick({...calendarQuick,scheduledAt:e.target.value})}/></div><div className="field full"><label>Details (optional)</label><textarea rows={3} value={calendarQuick.note} onChange={(e) => setCalendarQuick({...calendarQuick,note:e.target.value})}/></div></div>{calendarQuick.kind === "task" && <p className="calendar-quick-note">The task starts in the project’s default workflow column and is assigned to you when possible. You can edit all details afterward.</p>}</div><div className="modal-actions"><button type="button" className="button button-secondary" onClick={() => setCalendarQuickOpen(false)}>Cancel</button><button className="button button-primary" disabled={saving}>{saving?"Creating…":calendarQuick.kind === "task"?"Create task":"Create reminder"}</button></div></form></div>}
-        {selected && (
-          <div className="task-drawer-scrim" onClick={closeTask}>
-            <aside className="task-drawer" onClick={(e) => e.stopPropagation()}>
-              <header>
-                <div>
-                  <span className={`issue-type type-${selected.type}`}>
-                    {selected.type}
-                  </span>
-                  <b>{selected.key}</b>
-                </div>
-                <button
-                  className="icon-button"
-                  onClick={closeTask}
-                >
-                  <X size={18} />
-                </button>
-              </header>
-              <div className="task-timer-summary">
-                <Clock3 size={16} />
-                <div>
-                  <span>
-                    {selected.timeStartedAt
-                      ? "Timer running"
-                      : selected.timeStoppedAt
-                        ? "Timer stopped"
-                        : "Timer not started"}
-                  </span>
-                  <strong>{formatElapsed(elapsedSeconds(selected, now))} recorded</strong>
-                </div>
-                <button type="button" className="button button-secondary" disabled={saving || project.status === "archived"} onClick={() => changeTimer(selected.timeStartedAt ? "pause" : "start")}>{selected.timeStartedAt ? "Pause timer" : "Start / resume"}</button>
-              </div>
-              <div className="drawer-edit-fields">
-                <div className="field">
-                  <label>Title</label>
-                  <input
-                    value={selected.title}
-                    onChange={(e) =>
-                      setSelected({ ...selected, title: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="task-detail-description">Description</label>
-                  <textarea
-                    id="task-detail-description"
-                    className="task-detail-description"
-                    rows={12}
-                    value={selected.description || ""}
-                    onChange={(e) =>
-                      setSelected({ ...selected, description: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="task-detail-grid">
-                  <div>
-                    <span>Status</span>
-                    <strong>
-                      {
-                        workflow.find((x) => x.id === selected.workflowStatusId)
-                          ?.name
-                      }
-                    </strong>
-                  </div>
-                  <div className="field">
-                    <label>Priority</label>
-                    <select
-                      value={selected.priority}
-                      onChange={(e) =>
-                        setSelected({
-                          ...selected,
-                          priority: e.target.value as ProjectTask["priority"],
-                        })
-                      }
-                    >
-                      <option>low</option>
-                      <option>medium</option>
-                      <option>high</option>
-                      <option>critical</option>
-                    </select>
-                  </div>
-                  <div className="field">
-                    <label>Schedule start</label>
-                    <input type="datetime-local" value={toLocalDateTimeInput(selected.startDate)} onChange={(e) => setSelected({ ...selected, startDate: e.target.value })}/>
-                  </div>
-                  <div className="field">
-                    <label>Due date</label>
-                    <input
-                      type="date"
-                      value={selected.dueDate?.slice(0, 10) || ""}
-                      onChange={(e) =>
-                        setSelected({ ...selected, dueDate: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="field">
-                    <label>Estimated hours</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={selected.estimatedHours ?? ""}
-                      onChange={(e) =>
-                        setSelected({
-                          ...selected,
-                          estimatedHours: e.target.value
-                            ? Number(e.target.value)
-                            : undefined,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="field">
-                  <label>Assignees</label>
-                  <div className="multi-picker">
-                    {members
-                      .filter((m) => m.role !== "viewer")
-                      .map((m) => (
-                        <label key={m.employeeId}>
-                          <input
-                            type="checkbox"
-                            checked={selected.assigneeEmployeeIds.includes(
-                              m.employeeId,
-                            )}
-                            onChange={(e) =>
-                              setSelected({
-                                ...selected,
-                                assigneeEmployeeIds: e.target.checked
-                                  ? [
-                                      ...selected.assigneeEmployeeIds,
-                                      m.employeeId,
-                                    ]
-                                  : selected.assigneeEmployeeIds.filter(
-                                      (id) => id !== m.employeeId,
-                                    ),
-                              })
-                            }
-                          />
-                          {m.employee?.firstName} {m.employee?.lastName}
-                        </label>
-                      ))}
-                  </div>
-                </div>
-                <button
-                  className="button button-primary drawer-save"
-                  disabled={saving || project.status === "archived"}
-                  onClick={saveSelected}
-                >
-                  Save issue details
-                </button>
-              </div>
-              <section className="drawer-attachments">
-                <h3>
-                  <Paperclip size={16} />
-                  Files and screenshots
-                </h3>
-                <label className="attachment-drop compact">
-                  <FileUp size={16} />
-                  <span>Upload files</span>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*,.pdf,.txt,.csv,.zip,.docx,.xlsx"
-                    onChange={(e) => attachToSelected(e.target.files)}
-                  />
-                </label>
-                {attachments.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => openAttachment(item)}
-                  >
-                    <span>
-                      <Paperclip size={14} />
-                      <b>{item.originalName}</b>
-                      <small>{Math.ceil(item.size / 1024)} KB</small>
-                    </span>
-                    {item.mimeType.startsWith("image/") || item.mimeType === "application/pdf" ? <Search size={15} /> : <Download size={15} />}
-                  </button>
-                ))}
-              </section>
-              <section className="drawer-comments">
-                <h3>
-                  <MessageSquare size={16} />
-                  Comments
-                </h3>
-                {comments.map((c) => (
-                  <article key={c.id}>
-                    <span className="avatar">
-                      {members.find((m) => m.employeeId === c.authorEmployeeId)
-                        ?.employee?.firstName?.[0] || "U"}
-                    </span>
-                    <div>
-                      <strong className="comment-author">{c.author?.name || (() => { const person = members.find((m) => m.employeeId === c.authorEmployeeId)?.employee; return person ? `${person.firstName} ${person.lastName}` : "Team member"; })()}</strong>
-                      <p>{c.body.split(/(@[\w-]+)/g).map((part, index) => part.startsWith("@") ? <mark className="comment-mention" key={`${part}-${index}`}>{part}</mark> : part)}</p>
-                      <small>{new Date(c.createdAt).toLocaleString([], { hour12: true })}</small>
-                    </div>
-                  </article>
-                ))}
-                <form onSubmit={addComment}>
-                  <div className="comment-composer">
-                  <textarea
-                    ref={commentInput}
-                    required
-                    rows={3}
-                    placeholder="Write a comment… Use @ to mention a teammate"
-                    value={comment}
-                    onChange={(e) => changeComment(e.target.value, e.target.selectionStart)}
-                  />
-                  {mentionQuery !== null && <div className="mention-suggestions">{mentionSuggestions.length ? mentionSuggestions.map((member) => <button type="button" key={member.employeeId} onClick={() => insertMention(member)}><span className="avatar">{member.employee?.firstName?.[0]}{member.employee?.lastName?.[0]}</span><span><strong>{member.employee?.firstName} {member.employee?.lastName}</strong><small>@{member.employee?.employeeCode}</small></span></button>) : <p>No matching project member</p>}</div>}
-                  </div>
-                  <span className="comment-hint"><AtSign size={13}/> Type @ and choose a project member. They’ll receive a notification.</span>
-                  <button
-                    className="button button-primary"
-                    disabled={saving || project.status === "archived"}
-                  >
-                    Add comment
-                  </button>
-                </form>
-              </section>
-            </aside>
-          </div>
-        )}
         {memberModal && (
           <div className="modal-backdrop">
             <div className="modal project-modal">

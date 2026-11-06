@@ -30,6 +30,7 @@ import { Employee, Project } from "@/types";
 import { useClientClock } from "@/lib/useClientClock";
 import NotificationCenter from "@/components/NotificationCenter";
 import { api } from "@/lib/api";
+import { taskReturnPath } from "@/lib/taskLinks";
 
 const navigation = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -71,13 +72,14 @@ export default function AppShell({
   useEffect(() => {
     const session = getSession();
     if (!session || !localStorage.getItem("hrm_token")) {
-      router.replace(isAdmin ? "/admin/login" : "/login");
+      const next = taskReturnPath(`${pathname}${window.location.search}`, isAdmin);
+      router.replace(`${isAdmin ? "/admin/login" : "/login"}${next ? `?next=${encodeURIComponent(next)}` : ""}`);
       return;
     }
     const expectedAccountType = isAdmin ? "admin" : "employee";
     if (session.accountType !== expectedAccountType) {
       router.replace(
-        session.accountType === "admin" ? "/admin/dashboard" : "/dashboard",
+        taskReturnPath(`${pathname}${window.location.search}`, session.accountType === "admin") || (session.accountType === "admin" ? "/admin/dashboard" : "/dashboard"),
       );
       return;
     }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowUpRight, CalendarDays, Clock3, ListChecks, Timer } from "lucide-react";
 import { TrendAreaChart } from "@/components/AdminCharts";
 import { EmptyState, StatusPill } from "@/components/ui";
+import { taskDetailsHref } from "@/lib/taskLinks";
 
 type TaskLink = { id: string; key: string; title: string; projectId: string };
 type Project = { id: string; name: string; key: string };
@@ -20,7 +21,7 @@ export type EmployeeWorkData = {
 };
 
 const duration = (seconds: number) => seconds < 60 ? `${Math.max(0, Math.floor(seconds))}s` : `${Math.floor(seconds / 3600)}h ${Math.floor(seconds % 3600 / 60)}m`;
-const taskHref = (projectId: string, taskId: string) => `/admin/projects/${projectId}/board?view=board&task=${taskId}`;
+const taskHref = (projectId: string, taskId: string) => taskDetailsHref(projectId, taskId, true);
 const prettyDay = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 
 export default function EmployeeWorkReport({ data, tab }: { data: EmployeeWorkData; tab: "tasks" | "requests" | "activities" }) {

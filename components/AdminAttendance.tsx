@@ -4,6 +4,7 @@ import { Attendance } from "@/types";
 import { useLiveData } from "@/lib/useLiveData";
 import { EmptyState, ErrorBanner, StatusPill } from "@/components/ui";
 import { AttendanceLocation } from "@/components/AttendanceInsights";
+import AttendanceDevices from "@/components/AttendanceDevices";
 import { Users, Clock3, ShieldAlert } from "lucide-react";
 
 function initials(name?: string) {
@@ -89,6 +90,7 @@ export default function AdminAttendance() {
                   <th>Check in</th>
                   <th>Check out</th>
                   <th>Location</th>
+                  <th>Device</th>
                   <th>Flags</th>
                   <th>Status</th>
                 </tr>
@@ -112,6 +114,7 @@ export default function AdminAttendance() {
                         : "In progress"}
                     </td>
                     <td><AttendanceLocation record={item} /></td>
+                    <td><AttendanceDevices checkIn={item.checkInDevice} checkOut={item.checkOutDevice} completed={!!item.checkOutAt}/></td>
                     <td>{item.flags?.length ? <span className="attendance-flags">{item.flags.join(", ").replaceAll("_", " ")}</span> : "—"}</td>
                     <td>
                       <StatusPill value={item.status} />
