@@ -8,6 +8,7 @@ import { useLiveData } from "@/lib/useLiveData";
 import { errorMessage } from "@/lib/workspace";
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import EmployeeActivityDashboard from "@/components/EmployeeActivityDashboard";
+import AttendanceLocationReview from "@/components/AttendanceLocationReview";
 
 type Schedule = { timezone: string; weeklyPattern: { day: number; startTime: string; endTime: string; working: boolean }[] };
 const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -30,6 +31,7 @@ export default function AdminAttendancePage() {
         description="See who is checked in and review employee work sessions."
       />
       <AttendanceInsights summary={insights.data} />
+      <AttendanceLocationReview admin onRecorded={insights.refresh}/>
       <section className="card attendance-policy"><div className="card-header"><div><span className="section-kicker">Attendance rules</span><h2>Organization work schedule</h2><p>Set expected hours to flag late check-ins and early check-outs. No flags are inferred until this is saved.</p></div></div>
         <form onSubmit={saveSchedule} className="attendance-policy-form">
           {error && <ErrorBanner message={error} />}{saved && <div className="success-banner">Schedule saved. Attendance flags will use these hours.</div>}

@@ -6,6 +6,8 @@ import "./themes.css";
 import "./projects.css";
 import "./task-details.css";
 import "./attendance-devices.css";
+import "./attendance-location-review.css";
+import "./task-duration.css";
 
 export const metadata: Metadata = {
   title: "Be My Admin",

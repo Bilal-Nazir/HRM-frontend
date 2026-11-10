@@ -75,8 +75,14 @@ export default function DashboardEngagement({ audience }: { audience: "admin" | 
           setWeatherLoading(false);
         }
       },
-      () => {
-        setWeatherError("Allow location access to see your local weather.");
+      (error) => {
+        setWeatherError(
+          error.code === 1
+            ? "Location access is blocked. Allow this site and your browser to use location."
+            : error.code === 3
+              ? "Finding your location timed out. Check Location Services and retry."
+              : "Your device could not determine its location. Check Location Services and retry.",
+        );
         setWeatherLoading(false);
       },
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 2 * 60 * 60 * 1000 },

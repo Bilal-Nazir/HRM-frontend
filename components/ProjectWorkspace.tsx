@@ -55,7 +55,9 @@ import {
   WorkflowStatus,
 } from "@/types";
 
-type Tab = "overview" | "board" | "tasks" | "calendar" | "members" | "workflow" | "activity" | "trash";
+import { emptyProjectFilters, projectFilterKey, projectView, readProjectFilters, writeProjectFilters, ProjectFilters, ProjectView } from "@/lib/projectPreferences";
+
+type Tab = ProjectView;
 const tabs: {
   id: Tab;
   label: string;
@@ -71,6 +73,10 @@ const tabs: {
   { id: "activity", label: "Activity", icon: Activity },
   { id: "trash", label: "Deleted tasks", icon: Trash2 },
 ];
+import TaskDurationSettings from "@/components/TaskDurationSettings";
+import TaskDurationSelect from "@/components/TaskDurationSelect";
+import { formatTaskDuration } from "@/lib/taskDuration";
+
 const emptyTask = {
   type: "task",
   title: "",
@@ -80,7 +86,7 @@ const emptyTask = {
   assigneeEmployeeIds: [] as string[],
   startDate: "",
   dueDate: "",
-  estimatedHours: "",
+  durationMinutes: "",
   labels: "",
 };
 const localDateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -118,10 +124,14 @@ export default function ProjectWorkspace() {
     admin = pathname.startsWith("/admin"),
     prefix = admin ? "/admin" : "";
   const now = useClientClock();
-  const inferred = (pathname.split("/").pop() || "") as Tab;
-  const [tab, setTab] = useState<Tab>(
-    tabs.some((x) => x.id === inferred) ? inferred : "overview",
-  );
+  const session = typeof window !== "undefined" ? getSession() : null;
+  const filterKey = projectFilterKey(session, projectId);
+  const filterScope = filterKey || projectId;
+  const requestedView = searchParams.get("view");
+  const requestedAssignee = searchParams.get("assignee");
+  const [tab, setTab] = useState<Tab>(() => projectView(pathname, requestedView, admin));
+  const [filtersLoadedFor, setFiltersLoadedFor] = useState<string | null>(null);
+  const savedFilters = useRef<ProjectFilters>(emptyProjectFilters());
   const [project, setProject] = useState<Project | null>(null),
     [members, setMembers] = useState<ProjectMember[]>([]),
     [workflow, setWorkflow] = useState<WorkflowStatus[]>([]),
@@ -138,7 +148,7 @@ export default function ProjectWorkspace() {
     [reminders, setReminders] = useState<ProjectReminder[]>([]),
     [pendingFiles, setPendingFiles] = useState<File[]>([]),
     [calendarQuickOpen, setCalendarQuickOpen] = useState(false),
-    [calendarQuick, setCalendarQuick] = useState({ kind: "task" as "task" | "reminder", title: "", note: "", scheduledAt: "" }),
+    [calendarQuick, setCalendarQuick] = useState({ kind: "task" as "task" | "reminder", title: "", note: "", scheduledAt: "", durationMinutes: "" }),
     [saving, setSaving] = useState(false),
     [search, setSearch] = useState(""),
     [priority, setPriority] = useState(""),
@@ -204,12 +214,12 @@ export default function ProjectWorkspace() {
         const result = await api.get<{ tasks: ProjectTask[] }>(`/projects/${projectId}/tasks?size=200`);
         if (cancelled) return;
         const serverTasks = new Map(result.tasks.map((task) => [task.id, task]));
-        const timerFields = (task: ProjectTask) => ({ timeStartedAt: task.timeStartedAt, timeStoppedAt: task.timeStoppedAt, accumulatedSeconds: task.accumulatedSeconds });
-        setTasks((rows) => rows.map((task) => serverTasks.has(task.id) ? { ...task, ...timerFields(serverTasks.get(task.id)!) } : task));
+        const timerFields = (task: ProjectTask) => ({ timeStartedAt: task.timeStartedAt, timeStoppedAt: task.timeStoppedAt, accumulatedSeconds: task.accumulatedSeconds, workflowStatusId: task.workflowStatusId, completionMethod: task.completionMethod, completedAt: task.completedAt, durationMinutes: task.durationMinutes, autoCompleteAt: task.autoCompleteAt });
+        setTasks((rows) => rows.map((task) => serverTasks.has(task.id) && !moving.current.has(task.id) ? { ...task, ...timerFields(serverTasks.get(task.id)!) } : task));
       } catch { /* Keep the current board when a background refresh fails. */ }
       finally { refreshing = false; }
     };
-    const timer = setInterval(() => { void refreshTimers(); }, 15000);
+    const timer = setInterval(() => { void refreshTimers(); }, 5000);
     const refresh = () => { void refreshTimers(); };
     const storageRefresh = (event: StorageEvent) => { if (event.key === "hrm_attendance_changed") refresh(); };
     window.addEventListener("focus", refresh);
@@ -219,11 +229,21 @@ export default function ProjectWorkspace() {
     return () => { cancelled = true; clearInterval(timer); window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); window.removeEventListener("hrm:attendance-change", refresh); window.removeEventListener("storage", storageRefresh); };
   }, [projectId, loading]);
   useEffect(() => {
-    const requested = searchParams.get("view") as Tab | null;
-    const fallback = tabs.some((item) => item.id === inferred) ? inferred : "overview";
-    setTab(requested && tabs.some((item) => item.id === requested) ? requested : fallback);
-    setAssignee(searchParams.get("assignee") || "");
-  }, [searchParams, inferred]);
+    setTab(projectView(pathname, requestedView, admin));
+  }, [pathname, requestedView, admin]);
+  useEffect(() => {
+    const filters = readProjectFilters(window.localStorage, filterKey, requestedAssignee);
+    savedFilters.current = filters;
+    setSearch(filters.search); setPriority(filters.priority); setAssignee(filters.assignee);
+    writeProjectFilters(window.localStorage, filterKey, filters);
+    setFiltersLoadedFor(filterScope);
+  }, [filterKey, filterScope, requestedAssignee]);
+  const changeProjectFilters = (changes: Partial<ProjectFilters>) => {
+    const filters = { ...savedFilters.current, ...changes };
+    savedFilters.current = filters;
+    setSearch(filters.search); setPriority(filters.priority); setAssignee(filters.assignee);
+    writeProjectFilters(window.localStorage, filterKey, filters);
+  };
   useEffect(() => {
     if (admin)
       api
@@ -235,8 +255,7 @@ export default function ProjectWorkspace() {
         )
         .catch(() => {});
   }, [admin]);
-  const session = typeof window !== "undefined" ? getSession() : null,
-    canCreateStory =
+  const canCreateStory =
       admin ||
       members.some(
         (m) =>
@@ -260,7 +279,8 @@ export default function ProjectWorkspace() {
   );
   const setProjectQuery = (key: "view" | "assignee", value: string, push = false) => {
     const query = new URLSearchParams(searchParams.toString());
-    if (value) query.set(key, value);
+    if (key === "assignee") query.set(key, value || "all");
+    else if (value) query.set(key, value);
     else query.delete(key);
     const target = `${pathname}${query.size ? `?${query.toString()}` : ""}`;
     if (push) router.push(target, { scroll: false });
@@ -351,9 +371,7 @@ export default function ProjectWorkspace() {
         `/projects/${projectId}/tasks`,
         {
           ...taskForm,
-          estimatedHours: taskForm.estimatedHours
-            ? Number(taskForm.estimatedHours)
-            : undefined,
+          durationMinutes: Number(taskForm.durationMinutes),
           labels: taskForm.labels
             .split(",")
             .map((x) => x.trim())
@@ -374,7 +392,7 @@ export default function ProjectWorkspace() {
   const openCalendarQuickCreate = (day = new Date(), hour = 9) => {
     const scheduled = new Date(day);
     scheduled.setHours(hour, 0, 0, 0);
-    setCalendarQuick({ kind: "task", title: "", note: "", scheduledAt: toLocalDateTimeInput(scheduled.toISOString()) });
+    setCalendarQuick({ kind: "task", title: "", note: "", scheduledAt: toLocalDateTimeInput(scheduled.toISOString()), durationMinutes: "" });
     setCalendarQuickOpen(true);
   };
   const createCalendarItem = async (event: FormEvent) => {
@@ -384,7 +402,7 @@ export default function ProjectWorkspace() {
     try {
       if (calendarQuick.kind === "task") {
         const selfMember = members.find((member) => member.employeeId === session?.employeeId);
-        await api.post(`/projects/${projectId}/tasks`, { type: "task", title: calendarQuick.title, description: calendarQuick.note, priority: "medium", startDate: calendarQuick.scheduledAt, assigneeEmployeeIds: selfMember ? [selfMember.employeeId] : [] });
+        await api.post(`/projects/${projectId}/tasks`, { type: "task", title: calendarQuick.title, description: calendarQuick.note, priority: "medium", durationMinutes: Number(calendarQuick.durationMinutes), startDate: calendarQuick.scheduledAt, assigneeEmployeeIds: selfMember ? [selfMember.employeeId] : [] });
       } else {
         await api.post(`/projects/${projectId}/reminders`, { title: calendarQuick.title, note: calendarQuick.note, scheduledAt: calendarQuick.scheduledAt });
       }
@@ -599,7 +617,7 @@ export default function ProjectWorkspace() {
       );
     }
   };
-  if (loading)
+  if (loading || filtersLoadedFor !== filterScope)
     return (
       <AppShell>
         <div className="loading-line" />
@@ -668,13 +686,13 @@ export default function ProjectWorkspace() {
                 <Search size={15} />
                 <input
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => changeProjectFilters({ search: e.target.value })}
                   placeholder="Search work"
                 />
               </div>
               <select
                 value={priority}
-                onChange={(e) => setPriority(e.target.value)}
+                onChange={(e) => changeProjectFilters({ priority: e.target.value })}
               >
                 <option value="">Priority</option>
                 <option>low</option>
@@ -683,9 +701,9 @@ export default function ProjectWorkspace() {
                 <option>critical</option>
               </select>
               <div className="assignee-profile-filter" aria-label="Filter by assignee">
-                <button type="button" className={!assignee ? "active" : ""} onClick={() => { setAssignee(""); setProjectQuery("assignee", ""); }} title="All assignees">All</button>
+                <button type="button" className={!assignee ? "active" : ""} onClick={() => { changeProjectFilters({ assignee: "" }); setProjectQuery("assignee", ""); }} title="All assignees">All</button>
                 {members.filter((m) => m.employee).map((m) => (
-                  <button type="button" key={m.employeeId} className={assignee === m.employeeId ? "active" : ""} onClick={() => { const next = assignee === m.employeeId ? "" : m.employeeId; setAssignee(next); setProjectQuery("assignee", next); }} title={`${m.employee?.firstName} ${m.employee?.lastName}`}>
+                  <button type="button" key={m.employeeId} className={assignee === m.employeeId ? "active" : ""} onClick={() => { const next = assignee === m.employeeId ? "" : m.employeeId; changeProjectFilters({ assignee: next }); setProjectQuery("assignee", next); }} title={`${m.employee?.firstName} ${m.employee?.lastName}`}>
                     {m.employee?.firstName?.[0]}{m.employee?.lastName?.[0]}
                   </button>
                 ))}
@@ -868,6 +886,7 @@ export default function ProjectWorkspace() {
                                 if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.blur(); }
                               }}
                             /> : <h3>{boardTitle(task)}</h3>}
+                            <div className="task-duration-summary">{task.durationMinutes && <span>{formatTaskDuration(task.durationMinutes)} duration</span>}{task.completionMethod === "auto" && <span className="task-auto-done">Auto done</span>}</div>
                             <div className="jira-task-footer">
                               <span className="task-card-key"><Bookmark size={16} />{task.key}</span>
                               <div className="jira-task-actions">
@@ -945,7 +964,7 @@ export default function ProjectWorkspace() {
                               workflow.find(
                                 (x) => x.id === task.workflowStatusId,
                               )?.name
-                            }
+                            } {task.completionMethod === "auto" && <span className="task-auto-done">Auto done</span>}
                           </td>
                           <td>
                             <span
@@ -1032,7 +1051,8 @@ export default function ProjectWorkspace() {
             </div>
           </section>
         )}
-        {tab === "workflow" && admin && (
+        {tab === "workflow" && admin && (<>
+          <TaskDurationSettings project={project} workflow={workflow} onSaved={setProject}/>
           <section className="card">
             <div className="card-header">
               <div>
@@ -1109,7 +1129,7 @@ export default function ProjectWorkspace() {
               ))}
             </div>
           </section>
-        )}
+        </>)}
         {tab === "activity" && (
           <section className="card">
             <div className="card-header">
@@ -1303,20 +1323,7 @@ export default function ProjectWorkspace() {
                       }
                     />
                   </div>
-                  <div className="field">
-                    <label>Estimated hours</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={taskForm.estimatedHours}
-                      onChange={(e) =>
-                        setTaskForm({
-                          ...taskForm,
-                          estimatedHours: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
+                  <TaskDurationSelect options={project.taskDurationOptionsMinutes || []} value={taskForm.durationMinutes} onChange={(value) => setTaskForm({ ...taskForm, durationMinutes: value })}/>
                   <div className="field">
                     <label>Labels</label>
                     <input
@@ -1386,7 +1393,7 @@ export default function ProjectWorkspace() {
             {!calendarTasks.length && !reminders.length && <EmptyState title="No scheduled work" description="Click any date or hour to add a task or reminder." />}
           </section>
         )}
-        {calendarQuickOpen && <div className="modal-backdrop"><form className="modal project-modal calendar-quick-modal" onSubmit={createCalendarItem}><div className="modal-header"><div><h2>Add to calendar</h2><p>Create scheduled work or a shared project reminder.</p></div><button type="button" className="icon-button" onClick={() => setCalendarQuickOpen(false)}><X size={18}/></button></div><div className="modal-body">{error && <ErrorBanner message={error}/>}<div className="calendar-kind-picker"><button type="button" className={calendarQuick.kind === "task" ? "active" : ""} onClick={() => setCalendarQuick({...calendarQuick,kind:"task"})}><ListChecks size={18}/><span><strong>Task</strong><small>Add scheduled work to the board</small></span></button><button type="button" className={calendarQuick.kind === "reminder" ? "active" : ""} onClick={() => setCalendarQuick({...calendarQuick,kind:"reminder"})}><BellRing size={18}/><span><strong>Reminder</strong><small>Add a shared calendar reminder</small></span></button></div><div className="form-grid"><div className="field full"><label>{calendarQuick.kind === "task" ? "Task title" : "Reminder title"}</label><input required autoFocus value={calendarQuick.title} onChange={(e) => setCalendarQuick({...calendarQuick,title:e.target.value})}/></div><div className="field full"><label>Date and time</label><input required type="datetime-local" value={calendarQuick.scheduledAt} onChange={(e) => setCalendarQuick({...calendarQuick,scheduledAt:e.target.value})}/></div><div className="field full"><label>Details (optional)</label><textarea rows={3} value={calendarQuick.note} onChange={(e) => setCalendarQuick({...calendarQuick,note:e.target.value})}/></div></div>{calendarQuick.kind === "task" && <p className="calendar-quick-note">The task starts in the project’s default workflow column and is assigned to you when possible. You can edit all details afterward.</p>}</div><div className="modal-actions"><button type="button" className="button button-secondary" onClick={() => setCalendarQuickOpen(false)}>Cancel</button><button className="button button-primary" disabled={saving}>{saving?"Creating…":calendarQuick.kind === "task"?"Create task":"Create reminder"}</button></div></form></div>}
+        {calendarQuickOpen && <div className="modal-backdrop"><form className="modal project-modal calendar-quick-modal" onSubmit={createCalendarItem}><div className="modal-header"><div><h2>Add to calendar</h2><p>Create scheduled work or a shared project reminder.</p></div><button type="button" className="icon-button" onClick={() => setCalendarQuickOpen(false)}><X size={18}/></button></div><div className="modal-body">{error && <ErrorBanner message={error}/>}<div className="calendar-kind-picker"><button type="button" className={calendarQuick.kind === "task" ? "active" : ""} onClick={() => setCalendarQuick({...calendarQuick,kind:"task"})}><ListChecks size={18}/><span><strong>Task</strong><small>Add scheduled work to the board</small></span></button><button type="button" className={calendarQuick.kind === "reminder" ? "active" : ""} onClick={() => setCalendarQuick({...calendarQuick,kind:"reminder"})}><BellRing size={18}/><span><strong>Reminder</strong><small>Add a shared calendar reminder</small></span></button></div><div className="form-grid"><div className="field full"><label>{calendarQuick.kind === "task" ? "Task title" : "Reminder title"}</label><input required autoFocus value={calendarQuick.title} onChange={(e) => setCalendarQuick({...calendarQuick,title:e.target.value})}/></div><div className="field full"><label>Date and time</label><input required type="datetime-local" value={calendarQuick.scheduledAt} onChange={(e) => setCalendarQuick({...calendarQuick,scheduledAt:e.target.value})}/></div><div className="field full"><label>Details (optional)</label><textarea rows={3} value={calendarQuick.note} onChange={(e) => setCalendarQuick({...calendarQuick,note:e.target.value})}/></div></div>{calendarQuick.kind === "task" && <TaskDurationSelect options={project.taskDurationOptionsMinutes || []} value={calendarQuick.durationMinutes} onChange={(value) => setCalendarQuick({ ...calendarQuick, durationMinutes: value })}/>} {calendarQuick.kind === "task" && <p className="calendar-quick-note">The task starts in the project’s default workflow column and is assigned to you when possible. You can edit all details afterward.</p>}</div><div className="modal-actions"><button type="button" className="button button-secondary" onClick={() => setCalendarQuickOpen(false)}>Cancel</button><button className="button button-primary" disabled={saving}>{saving?"Creating…":calendarQuick.kind === "task"?"Create task":"Create reminder"}</button></div></form></div>}
         {memberModal && (
           <div className="modal-backdrop">
             <div className="modal project-modal">

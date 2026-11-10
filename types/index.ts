@@ -26,7 +26,7 @@ export type AttendanceDevice = {
   capturedAt: string;
   deviceType: "desktop" | "mobile" | "tablet" | "unknown";
   browser?: string; browserVersion?: string; os?: string; osVersion?: string;
-  userAgent?: string; ipAddress?: string; connectionIp?: string;
+  userAgent?: string; ipAddress?: string; publicIpAddress?: string; connectionIp?: string;
   platform?: string; platformVersion?: string; model?: string; architecture?: string; bitness?: string;
   timezone?: string; language?: string;
   screenWidth?: number; screenHeight?: number; viewportWidth?: number; viewportHeight?: number; pixelRatio?: number;
@@ -50,12 +50,18 @@ export type Attendance = {
     longitude: number;
     accuracyMeters?: number;
     address?: string;
+    source?: "browser" | "admin";
+    capturedAt?: string;
+    reason?: string;
   };
   checkOutLocation?: {
     latitude: number;
     longitude: number;
     accuracyMeters?: number;
     address?: string;
+    source?: "browser" | "admin";
+    capturedAt?: string;
+    reason?: string;
   };
   workedHours?: number;
   flags?: string[];
@@ -99,6 +105,8 @@ export type Project = {
   memberCount?: number;
   totalTasks?: number;
   completedTasks?: number;
+  taskDurationOptionsMinutes?: number[];
+  autoCompleteStatusId?: string;
   progress?: number;
   createdAt?: string;
   updatedAt?: string;
@@ -144,7 +152,10 @@ export type ProjectTask = {
   workflowStatusId: string;
   startDate?: string;
   dueDate?: string;
-  estimatedHours?: number;
+  durationMinutes?: number;
+  autoCompleteAt?: string;
+  completionMethod?: "manual" | "auto";
+  completedAt?: string;
   labels: string[];
   timeStartedAt?: string;
   timeStoppedAt?: string;

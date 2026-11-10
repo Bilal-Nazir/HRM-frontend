@@ -52,15 +52,16 @@ test("activity tabs isolate comments, field changes and work logs; All includes 
   assert.match(history, /href="\/admin\/employees\/employee-1"/); assert.doesNotMatch(render("history", false), /\/admin\/employees/);
 });
 
-function renderDetails({ canEdit = true, tab = "all", admin = true } = {}) {
+function renderDetails({ canEdit = true, tab = "all", admin = true, taskChanges = {} } = {}) {
   let stateIndex = 0;
-  const state = [ { ...data, permissions: { canEdit } }, [], false ];
+  const state = [ { ...data, task: { ...data.task, ...taskChanges }, permissions: { canEdit } }, [], false ];
   const hooks = { ...React, useState: (initial) => [stateIndex < state.length ? state[stateIndex++] : (stateIndex++, initial), () => {}], useEffect: () => {}, useCallback: (fn) => fn, useRef: (value) => ({ current: value }) };
   const component = load("components/TaskDetails.tsx", {
     react: hooks, "next/link": { __esModule: true, default: Link },
     "next/navigation": { useParams: () => ({ projectId, taskId }), usePathname: () => `${admin ? "/admin" : ""}${path}`, useSearchParams: () => new URLSearchParams({ activity: tab }), useRouter: () => ({}) },
     "@/components/AppShell": { __esModule: true, default: ({ children }) => React.createElement("div", {}, children) },
     "@/components/ui": { ErrorBanner: () => null }, "@/components/TaskActivity": activity,
+    "@/components/TaskDurationSelect": load("components/TaskDurationSelect.tsx", { "@/lib/taskDuration": load("lib/taskDuration.ts") }), "@/lib/taskDuration": load("lib/taskDuration.ts"),
     "@/lib/api": {}, "@/lib/taskLinks": links, "@/lib/useClientClock": { useClientClock: () => null },
   }).default;
   return renderToStaticMarkup(React.createElement(component));
@@ -68,9 +69,17 @@ function renderDetails({ canEdit = true, tab = "all", admin = true } = {}) {
 
 test("task page exposes task metadata and bottom activity tabs, with read-only mode for viewers", () => {
   const html = renderDetails();
-  for (const label of ["Created by", "Reporter", "Created", "Updated", "Scheduled start", "Due date", "Estimate", "Total tracked", "Unassigned", "Description", "History", "Work log", "Copy link"]) assert.ok(html.includes(label), label);
+  for (const label of ["Created by", "Reporter", "Created", "Updated", "Scheduled start", "Due date", "Task duration", "Total tracked", "Unassigned", "Description", "History", "Work log", "Copy link"]) assert.ok(html.includes(label), label);
   assert.ok(html.indexOf('id="activity"') > html.indexOf("task-detail-sidebar"));
   assert.match(html, /Edit task/); assert.match(html, /Add comment/); assert.match(html, /Load older activity/);
   const viewer = renderDetails({ canEdit: false, tab: "history" });
   assert.doesNotMatch(viewer, /Edit task|Add comment|Start \/ resume/); assert.match(viewer, /aria-label="Task status" disabled/);
+});
+
+test("automatically completed tasks show Auto done and cannot restart their timer from the detail screen", () => {
+  const html = renderDetails({ taskChanges: { durationMinutes: 30, completionMethod: "auto", completedAt: "2026-11-10T10:00:00Z", timeStoppedAt: "2026-11-10T10:00:00Z", accumulatedSeconds: 1800 } });
+  assert.match(html, /Auto done/); assert.match(html, /Task duration/); assert.match(html, /30min/);
+  assert.doesNotMatch(html, /Start \/ resume|Pause timer/);
+  const manual = renderDetails({ taskChanges: { completionMethod: "manual", completedAt: "2026-11-10T10:00:00Z" } });
+  assert.match(manual, /Manual completion/); assert.doesNotMatch(manual, /Auto done/);
 });

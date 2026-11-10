@@ -13,13 +13,16 @@ import { useClientClock } from "@/lib/useClientClock";
 import { ProjectMember } from "@/types";
 import { TaskDetailData, TaskMembers, TaskPerson } from "@/types/taskDetails";
 
+import TaskDurationSelect from "@/components/TaskDurationSelect";
+import { formatTaskDuration } from "@/lib/taskDuration";
+
 const activityTabs: { id: TaskActivityTab; label: string }[] = [{ id: "all", label: "All" }, { id: "comments", label: "Comments" }, { id: "history", label: "History" }, { id: "worklog", label: "Work log" }];
 const localDateTime = (value?: string) => {
   if (!value) return "";
   const date = new Date(value);
   return new Date(+date - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 };
-type Draft = { title: string; description: string; priority: string; labels: string; startDate: string; dueDate: string; estimatedHours: string; assigneeEmployeeIds: string[] };
+type Draft = { title: string; description: string; priority: string; labels: string; startDate: string; dueDate: string; durationMinutes: string; assigneeEmployeeIds: string[] };
 
 export default function TaskDetails() {
   const { projectId, taskId } = useParams<{ projectId: string; taskId: string }>();
@@ -70,7 +73,7 @@ export default function TaskDetails() {
 
   useEffect(() => {
     if (draft || busy || loading) return;
-    const timer = window.setInterval(() => { void refresh().catch(() => {}); }, 15000);
+    const timer = window.setInterval(() => { void refresh().catch(() => {}); }, 5000);
     return () => window.clearInterval(timer);
   }, [refresh, draft, busy, loading]);
 
@@ -86,13 +89,13 @@ export default function TaskDetails() {
   const beginEdit = () => {
     if (!data) return;
     const task = data.task;
-    setDraft({ title: task.title, description: task.description || "", priority: task.priority, labels: task.labels.join(", "), startDate: localDateTime(task.startDate), dueDate: task.dueDate?.slice(0, 10) || "", estimatedHours: String(task.estimatedHours ?? ""), assigneeEmployeeIds: [...task.assigneeEmployeeIds] });
+    setDraft({ title: task.title, description: task.description || "", priority: task.priority, labels: task.labels.join(", "), startDate: localDateTime(task.startDate), dueDate: task.dueDate?.slice(0, 10) || "", durationMinutes: String(task.durationMinutes ?? ""), assigneeEmployeeIds: [...task.assigneeEmployeeIds] });
   };
   const save = (event: FormEvent) => {
     event.preventDefault();
     if (!draft) return;
     void act(async () => {
-      await api.patch(endpoint, { ...draft, labels: draft.labels.split(",").map((label) => label.trim()).filter(Boolean), startDate: draft.startDate ? new Date(draft.startDate).toISOString() : null, dueDate: draft.dueDate || null, estimatedHours: draft.estimatedHours === "" ? null : Number(draft.estimatedHours) });
+      await api.patch(endpoint, { ...draft, durationMinutes: Number(draft.durationMinutes), labels: draft.labels.split(",").map((label) => label.trim()).filter(Boolean), startDate: draft.startDate ? new Date(draft.startDate).toISOString() : null, dueDate: draft.dueDate || null });
       setDraft(null);
     });
   };
@@ -160,11 +163,11 @@ export default function TaskDetails() {
       <header className="task-detail-header"><div><span className="section-kicker">{task.type} · {task.key}</span><h1>{task.title}</h1></div><div className="task-detail-actions"><Link className="button button-secondary" href={backHref}><ArrowLeft size={15}/> Back to project</Link><button className="button button-secondary" onClick={async () => { try { await navigator.clipboard.writeText(`${window.location.origin}${taskDetailsHref(projectId, taskId, false)}`); setCopied(true); } catch { setError("Could not copy the link. Copy the page URL from your browser."); } }}>{copied ? <Check size={15}/> : <Copy size={15}/>} {copied ? "Copied" : "Copy link"}</button>{canEdit && !draft && <button className="button button-primary" onClick={beginEdit}><Pencil size={15}/> Edit task</button>}</div></header>
       {data.project.status === "archived" && <p className="task-detail-notice">This project is archived. Task details are read-only.</p>}
       <div className="task-detail-layout"><main className="task-detail-main">
-        <section className={`card task-detail-timer${task.timeStartedAt ? " running" : ""}`}><Clock3 size={23}/><div><span>{task.timeStartedAt ? "Timer running" : task.timeStoppedAt ? "Timer paused" : "Timer not started"}</span><strong>{taskDuration(elapsed)} recorded</strong></div>{canEdit && <button className="button button-secondary" disabled={busy} onClick={() => void act(async () => { await api.patch(`${endpoint}/timer`, { action: task.timeStartedAt ? "pause" : "start" }); })}>{task.timeStartedAt ? "Pause timer" : "Start / resume"}</button>}</section>
+        <section className={`card task-detail-timer${task.timeStartedAt ? " running" : ""}`}><Clock3 size={23}/><div><span>{task.completionMethod === "auto" ? "Auto done" : task.completedAt ? "Completed manually" : task.timeStartedAt ? "Timer running" : task.timeStoppedAt ? "Timer paused" : "Timer not started"}</span><strong>{taskDuration(elapsed)} recorded</strong></div>{canEdit && !task.completedAt && <button className="button button-secondary" disabled={busy} onClick={() => void act(async () => { await api.patch(`${endpoint}/timer`, { action: task.timeStartedAt ? "pause" : "start" }); })}>{task.timeStartedAt ? "Pause timer" : "Start / resume"}</button>}</section>
         <section className="card task-detail-section"><h2>Description</h2>{draft ? <form className="task-detail-edit" onSubmit={save}>
           <label className="field">Title<input required maxLength={180} value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })}/></label>
           <label className="field">Description<textarea className="task-detail-description" rows={14} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })}/></label>
-          <div className="task-edit-grid"><label className="field">Priority<select value={draft.priority} onChange={(e) => setDraft({ ...draft, priority: e.target.value })}>{["low", "medium", "high", "critical"].map((value) => <option key={value}>{value}</option>)}</select></label><label className="field">Estimated hours<input type="number" min="0" step="0.25" value={draft.estimatedHours} onChange={(e) => setDraft({ ...draft, estimatedHours: e.target.value })}/></label><label className="field">Scheduled start<input type="datetime-local" value={draft.startDate} onChange={(e) => setDraft({ ...draft, startDate: e.target.value })}/></label><label className="field">Due date<input type="date" value={draft.dueDate} onChange={(e) => setDraft({ ...draft, dueDate: e.target.value })}/></label></div>
+          <div className="task-edit-grid"><label className="field">Priority<select value={draft.priority} onChange={(e) => setDraft({ ...draft, priority: e.target.value })}>{["low", "medium", "high", "critical"].map((value) => <option key={value}>{value}</option>)}</select></label><TaskDurationSelect options={data.project.taskDurationOptionsMinutes || []} value={draft.durationMinutes} onChange={(value) => setDraft({ ...draft, durationMinutes: value })}/><label className="field">Scheduled start<input type="datetime-local" value={draft.startDate} onChange={(e) => setDraft({ ...draft, startDate: e.target.value })}/></label><label className="field">Due date<input type="date" value={draft.dueDate} onChange={(e) => setDraft({ ...draft, dueDate: e.target.value })}/></label></div>
           <label className="field">Labels<input placeholder="Separate with commas" value={draft.labels} onChange={(e) => setDraft({ ...draft, labels: e.target.value })}/></label>
           <fieldset className="task-assignee-picker"><legend>Assignees</legend>{members.filter((member) => member.role !== "viewer").map((member) => <label key={member.employeeId}><input type="checkbox" checked={draft.assigneeEmployeeIds.includes(member.employeeId)} onChange={(e) => setDraft({ ...draft, assigneeEmployeeIds: e.target.checked ? [...draft.assigneeEmployeeIds, member.employeeId] : draft.assigneeEmployeeIds.filter((id) => id !== member.employeeId) })}/>{member.employee?.firstName} {member.employee?.lastName}</label>)}</fieldset>
           <div className="task-detail-actions"><button className="button button-primary" disabled={busy}>Save changes</button><button type="button" className="button button-secondary" disabled={busy} onClick={() => setDraft(null)}>Cancel</button></div>
@@ -173,6 +176,8 @@ export default function TaskDetails() {
         <section className="card task-detail-section"><header className="task-section-heading"><h2>Files and screenshots ({data.attachments.length})</h2>{canEdit && <label className="button button-secondary task-upload"><FileUp size={15}/> Upload<input disabled={busy} type="file" multiple accept="image/*,.pdf,.txt,.csv,.zip,.docx,.xlsx" onChange={(e) => { void upload(e.target.files); e.target.value = ""; }}/></label>}</header><div className="task-detail-files">{data.attachments.map((item) => <button key={item.id} type="button" onClick={() => void openAttachment(item)}><Paperclip size={18}/><span><strong>{item.originalName}</strong><small>{Math.ceil(item.size / 1024)} KB · {taskDateTime(item.createdAt)}</small></span></button>)}{!data.attachments.length && <p className="task-detail-empty">No files attached.</p>}</div></section>
       </main><aside className="card task-detail-sidebar"><h2>Details</h2><dl>
         <div><dt>Status</dt><dd><select aria-label="Task status" disabled={!canEdit || busy || !!draft} value={task.workflowStatusId} onChange={(e) => { const workflowStatusId = e.target.value; void act(async () => { await api.patch(`${endpoint}/status`, { workflowStatusId }); }); }}>{!data.workflow.some((status) => status.id === task.workflowStatusId) && <option value={task.workflowStatusId}>{task.status?.name || "Archived status"}</option>}{data.workflow.map((status) => <option value={status.id} key={status.id}>{status.name}</option>)}</select></dd></div>
+        {task.completionMethod && <div><dt>Completion</dt><dd>{task.completionMethod === "auto" ? <span className="task-auto-done">Auto done</span> : "Manual completion"} · {taskDateTime(task.completedAt)}</dd></div>}
+        <div><dt>Task duration</dt><dd>{task.durationMinutes ? formatTaskDuration(task.durationMinutes) : "Not set"}</dd></div>
         <div><dt>Assignees</dt><dd>{people((task.assignees || []).map((person) => ({ ...person, employeeId: person.id })))}</dd></div>
         <div><dt>Reporter</dt><dd>{people([task.reporter])}</dd></div><div><dt>Created by</dt><dd>{people([task.creator])}</dd></div>
         <div><dt>Priority</dt><dd className="task-detail-priority">{task.priority}</dd></div><div><dt>Type</dt><dd>{task.type}</dd></div>
@@ -180,7 +185,7 @@ export default function TaskDetails() {
         {task.parent && <div><dt>Parent story</dt><dd>{task.parent.isDeleted ? `${task.parent.key} (deleted)` : <Link className="task-person-link" href={taskDetailsHref(projectId, task.parent.id, admin)}>{task.parent.key} · {task.parent.title}</Link>}</dd></div>}
         <div><dt>Labels</dt><dd className="task-detail-labels">{task.labels.length ? task.labels.map((label) => <span key={label}>{label}</span>) : "None"}</dd></div>
         <div><dt>Scheduled start</dt><dd>{taskDateTime(task.startDate)}</dd></div><div><dt>Due date</dt><dd>{task.dueDate ? new Date(task.dueDate).toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" }) : "Not set"}</dd></div>
-        <div><dt>Estimate</dt><dd>{task.estimatedHours === undefined || task.estimatedHours === null ? "Not set" : `${task.estimatedHours} hours`}</dd></div><div><dt>Total tracked</dt><dd>{taskDuration(elapsed)}</dd></div>
+        <div><dt>Total tracked</dt><dd>{taskDuration(elapsed)}</dd></div>
         <div><dt>Created</dt><dd>{taskDateTime(task.createdAt)}</dd></div><div><dt>Updated</dt><dd>{taskDateTime(task.updatedAt)}</dd></div>
       </dl></aside></div>
       <section className="card task-detail-section task-detail-activity" id="activity"><header className="task-section-heading"><h2>Activity</h2><button type="button" className="button button-secondary" disabled={busy} onClick={() => void act(async () => {})}><RefreshCw size={14}/> Refresh</button></header>

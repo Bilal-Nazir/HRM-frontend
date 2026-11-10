@@ -159,7 +159,7 @@ function EmployeeProfileReport() {
         <section className="card"><div className="card-header"><div><span className="section-kicker">Selected period</span><h2>Working-hours progress</h2><p>Daily completed hours across the selected range</p></div></div><TrendAreaChart data={trend} label="Hours worked" suffix="h"/></section>
         <section className="card employee-profile-card"><div className="avatar">{employee?.firstName[0]}{employee?.lastName[0]}</div><h2>{employee?.firstName} {employee?.lastName}</h2><p>{employee?.workEmail}</p><StatusPill value={employee?.employmentStatus || "active"}/><dl><div><dt>Employee ID</dt><dd>{employee?.employeeCode}</dd></div><div><dt>Employment</dt><dd>{employee?.employmentType || "—"}</dd></div><div><dt>Job title</dt><dd>{employee?.jobTitle || "—"}</dd></div></dl></section>
       </div>
-      <section className="card"><div className="card-header"><div><span className="section-kicker">Detailed report</span><h2>Attendance records</h2><p>Daily totals with every session and its recorded check-in/check-out coordinates</p></div></div><AttendanceDayRecords sessions={summary.daily}/></section>
+      <section className="card"><div className="card-header"><div><span className="section-kicker">Detailed report</span><h2>Attendance records</h2><p>Daily totals with every session and its recorded check-in/check-out coordinates</p></div></div><AttendanceDayRecords sessions={summary.daily} onCorrected={() => void load()}/></section>
     </>)}
     {tab !== "attendance" && <>{workError && <ErrorBanner message={workError}/>} {workLoading ? <div className="loading-line"/> : !workError && workData && <EmployeeWorkReport data={workData} tab={tab}/>}</>}
   </AppShell>;

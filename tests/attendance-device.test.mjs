@@ -32,10 +32,12 @@ test("admin device viewer presents both snapshots and handles historical records
   const scope = { exports: {}, require };
   runInNewContext(compile("components/AttendanceDevices.tsx"), scope);
   const Component = scope.exports.default;
-  const checkIn = { capturedAt: "2026-11-06T10:00:00Z", deviceType: "desktop", browser: "Chrome", os: "macOS", ipAddress: "203.0.113.8" };
+  const checkIn = { capturedAt: "2026-11-06T10:00:00Z", deviceType: "desktop", browser: "Chrome", os: "macOS", ipAddress: "8.8.8.8", publicIpAddress: "8.8.8.8", connectionIp: "172.18.0.4" };
   const html = renderToStaticMarkup(React.createElement(Component, { checkIn, checkOut: { ...checkIn, deviceType: "mobile", browser: "Safari", os: "iOS" }, completed: true }));
-  for (const value of ["Check-in device", "Check-out device", "Chrome", "Safari", "macOS", "iOS", "203.0.113.8", "Unavailable in web browsers"]) assert.ok(html.includes(value), value);
+  for (const value of ["Check-in device", "Check-out device", "Chrome", "Safari", "macOS", "iOS", "Public internet IP", "8.8.8.8", "172.18.0.4", "Unavailable in web browsers"]) assert.ok(html.includes(value), value);
   assert.match(html, /<details/);
   assert.match(renderToStaticMarkup(React.createElement(Component, {})), /Not recorded/);
   assert.match(renderToStaticMarkup(React.createElement(Component, { checkIn })), /Awaiting check-out/);
+  const oldSnapshot = renderToStaticMarkup(React.createElement(Component, { checkIn: { ...checkIn, publicIpAddress: undefined, ipAddress: "172.18.0.1" } }));
+  assert.match(oldSnapshot, /Not captured for this session/);
 });

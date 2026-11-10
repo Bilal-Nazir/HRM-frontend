@@ -5,6 +5,7 @@ import { useLiveData } from "@/lib/useLiveData";
 import { EmptyState, ErrorBanner, StatusPill } from "@/components/ui";
 import { AttendanceLocation } from "@/components/AttendanceInsights";
 import AttendanceDevices from "@/components/AttendanceDevices";
+import CorrectAttendanceLocation from "@/components/CorrectAttendanceLocation";
 import { Users, Clock3, ShieldAlert } from "lucide-react";
 
 function initials(name?: string) {
@@ -31,6 +32,7 @@ export default function AdminAttendance() {
   const { data, error, refresh } = useLiveData<AttendanceOverview>(
     `/attendance/manage?open=${openOnly}&flags=${flagsOnly}&size=20&page=${page}`,
   );
+  useEffect(() => { window.addEventListener("hrm:attendance-change", refresh); return () => window.removeEventListener("hrm:attendance-change", refresh); }, [refresh]);
   return (
     <section className="card">
       <div className="card-header">
@@ -113,7 +115,7 @@ export default function AdminAttendance() {
                         ? new Date(item.checkOutAt).toLocaleString([], { hour12: true })
                         : "In progress"}
                     </td>
-                    <td><AttendanceLocation record={item} /></td>
+                    <td><AttendanceLocation record={item} /><CorrectAttendanceLocation record={item} onSaved={refresh}/></td>
                     <td><AttendanceDevices checkIn={item.checkInDevice} checkOut={item.checkOutDevice} completed={!!item.checkOutAt}/></td>
                     <td>{item.flags?.length ? <span className="attendance-flags">{item.flags.join(", ").replaceAll("_", " ")}</span> : "—"}</td>
                     <td>

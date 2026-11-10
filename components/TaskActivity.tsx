@@ -14,6 +14,7 @@ export function TaskPersonLink({ person, admin }: { person: TaskPerson; admin: b
 
 const actionLabels: Record<string, string> = {
   "task.created": "created this task", "story.created": "created this story", "task.updated": "updated this task",
+  "task.auto_completed": "automatically completed the task when its duration was reached",
   "task.status_changed": "changed the status", "task.timer_started": "started the timer", "task.timer_paused": "paused the timer",
   "task.timer_auto_paused": "had the timer stopped at check-out", "attachment.added": "added an attachment",
   "comment.added": "added a comment", "task.deleted": "deleted this task", "task.restored": "restored this task",
@@ -50,7 +51,7 @@ export default function TaskActivity({ data, tab, admin, now }: { data: TaskDeta
           {event.action === "task.timer_paused" && typeof event.changes?.durationSeconds === "number" && <p>{taskDuration(event.changes.durationSeconds)} in this session</p>}
         </>; })()}
         {row.kind === "comment" && <p className="task-comment-body">{(row.value as TaskDetailData["comments"][number]).body.split(/(@[\w-]+)/g).map((part, index) => part.startsWith("@") ? <mark className="comment-mention" key={index}>{part}</mark> : part)}</p>}
-        {row.kind === "worklog" && (() => { const session = row.value as TaskDetailData["worklog"][number]; const seconds = session.endedAt || !now ? session.durationSeconds : Math.max(0, Math.floor((+now - +new Date(session.startedAt)) / 1000)); return <div className="task-worklog-session"><strong>{taskDuration(seconds)}</strong><span>{taskDateTime(session.startedAt)} → {session.endedAt ? taskDateTime(session.endedAt) : "Running"}</span><small>{!session.endedAt ? "Timer running" : session.stopReason === "checkout" ? "Stopped automatically at check-out" : session.stopReason === "status_change" ? "Stopped by a status change" : "Timer paused"}</small></div>; })()}
+        {row.kind === "worklog" && (() => { const session = row.value as TaskDetailData["worklog"][number]; const seconds = session.endedAt || !now ? session.durationSeconds : Math.max(0, Math.floor((+now - +new Date(session.startedAt)) / 1000)); return <div className="task-worklog-session"><strong>{taskDuration(seconds)}</strong><span>{taskDateTime(session.startedAt)} → {session.endedAt ? taskDateTime(session.endedAt) : "Running"}</span><small>{!session.endedAt ? "Timer running" : session.stopReason === "auto_done" ? "Auto done — task duration reached" : session.stopReason === "checkout" ? "Stopped automatically at check-out" : session.stopReason === "status_change" ? "Stopped by a status change" : "Timer paused"}</small></div>; })()}
       </div>
     </article>)}
   </div>;

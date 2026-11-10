@@ -1,0 +1,119 @@
+.attendance-location-review {
+  margin: 20px 0;
+  scroll-margin-top: 90px;
+}
+.location-review-body {
+  padding: 20px;
+}
+.location-review-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.location-review-form,
+.location-review-fields {
+  display: grid;
+  gap: 14px;
+  max-width: 760px;
+  margin-top: 18px;
+}
+.location-review-form label,
+.location-review-fields label {
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.location-review-form :is(input, textarea, select),
+.location-review-fields :is(input, textarea) {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-soft);
+  color: var(--ink);
+  font: inherit;
+}
+.location-review-form textarea,
+.location-review-fields textarea {
+  resize: vertical;
+}
+.location-review-form p,
+.location-review-fields > small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.location-review-form > .button {
+  justify-self: start;
+}
+.location-map-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--primary);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+.location-review-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+.location-request-row {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+.location-request-row > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.location-request-row header strong,
+.location-request-row header small {
+  display: block;
+}
+.location-request-row header strong {
+  font-size: 13px;
+}
+.location-request-row header small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.location-request-row > p {
+  white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.location-request-row > .button {
+  margin-top: 12px;
+}
+.location-review-comment {
+  border-left: 3px solid var(--primary);
+  padding-left: 10px;
+  color: var(--muted);
+}
+.location-correct-button {
+  display: block;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font-size: 11px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.recorded-session-location .manual-location-label,
+.attendance-location .manual-location-label {
+  color: var(--warning);
+}

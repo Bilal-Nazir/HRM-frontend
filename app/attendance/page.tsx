@@ -10,6 +10,7 @@ import {
 } from "@/components/ui";
 import { api } from "@/lib/api";
 import { captureAttendanceDevice } from "@/lib/attendanceDevice";
+import AttendanceLocationReview from "@/components/AttendanceLocationReview";
 import { captureAttendanceLocation, errorMessage } from "@/lib/workspace";
 import { useClientClock } from "@/lib/useClientClock";
 import { Attendance } from "@/types";
@@ -146,6 +147,8 @@ export default function AttendancePage() {
             {success}
           </div>
         )}
+
+        <AttendanceLocationReview assistance={!!actionError} action={openRecord ? "check_out" : "check_in"} onRecorded={() => { void load(); setActionError(""); setSuccess("Admin confirmed your location and recorded attendance."); }}/>
 
         <section className="attendance-hero">
           <div className="attendance-intro">

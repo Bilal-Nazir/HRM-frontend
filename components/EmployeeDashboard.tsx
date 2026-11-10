@@ -20,6 +20,7 @@ import { captureAttendanceDevice } from "@/lib/attendanceDevice";
 import { Attendance, Employee } from "@/types";
 import { AttendanceInsights, AttendanceSummary, AttendanceLocation } from "@/components/AttendanceInsights";
 import DashboardEngagement from "@/components/DashboardEngagement";
+import AttendanceLocationReview from "@/components/AttendanceLocationReview";
 
 function sessionDuration(session: Attendance | undefined, now: Date | null) {
   if (!session || !now) return "—";
@@ -198,6 +199,8 @@ export default function EmployeeDashboard() {
             {actionSuccess}
           </div>
         )}
+
+        <AttendanceLocationReview assistance={!!actionError} action={open ? "check_out" : "check_in"} onRecorded={() => { setReload((value) => value + 1); setActionError(""); setActionSuccess("Admin confirmed your location and recorded attendance."); }}/>
 
         {errors.length > 0 && (
           <div className="employee-load-error">
