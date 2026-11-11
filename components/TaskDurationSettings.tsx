@@ -1,5 +1,5 @@
 "use client";
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { formatTaskDuration } from "@/lib/taskDuration";
 import { Project, WorkflowStatus } from "@/types";
@@ -43,9 +43,9 @@ export default function TaskDurationSettings({
     setError("");
     setSaved(false);
   };
-  const save = async (event: FormEvent) => {
-    event.preventDefault();
+  const save = async () => {
     if (!options.length) { setError("Add at least one task duration option."); return; }
+    if (!target) { setError("Choose a Done-category completion column."); return; }
     setBusy(true);
     setError("");
     setSaved(false);
@@ -78,7 +78,7 @@ export default function TaskDurationSettings({
           </p>
         </div>
       </div>
-      <form className="card-body" onSubmit={save}>
+      <div className="card-body">
         {error && <ErrorBanner message={error} />}{" "}
         {saved && (
           <p className="success-banner" role="status">
@@ -149,7 +149,6 @@ export default function TaskDurationSettings({
               setTarget(e.target.value);
               setSaved(false);
             }}
-            required
             disabled={busy}
           >
             <option value="">Choose a Done-category column</option>
@@ -168,10 +167,10 @@ export default function TaskDurationSettings({
           choices does not change existing task durations. The completion column
           applies to all timed tasks in this project.
         </p>
-        <button className="button button-primary" disabled={busy}>
+        <button type="button" className="button button-primary" disabled={busy} onClick={save}>
           {busy ? "Saving…" : "Save duration settings"}
         </button>
-      </form>
+      </div>
     </section>
   );
 }

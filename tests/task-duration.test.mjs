@@ -23,6 +23,11 @@ test("duration picker offers configured choices and preserves a removed existing
   assert.doesNotMatch(html, /No automatic completion|type="number"/);
   const noOptions = renderToStaticMarkup(React.createElement(Select, { options: [], value: "", onChange() {} }));
   assert.match(noOptions, /No durations configured/); assert.match(noOptions, /<select[^>]*required/);
+  assert.match(noOptions, /<select[^>]*disabled/);
+  assert.match(noOptions, /Ask a project admin/);
+  const setup = renderToStaticMarkup(React.createElement(Select, { options: [], value: "", onChange() {}, setup: React.createElement("div", null, "Duration settings") }));
+  assert.match(setup, /Configure task durations/);
+  assert.match(setup, /Duration settings/);
 });
 
 test("admin settings show custom duration units and only Done-category completion destinations", () => {
@@ -30,4 +35,6 @@ test("admin settings show custom duration units and only Done-category completio
   const html = renderToStaticMarkup(React.createElement(Settings, { project: { id: "project", taskDurationOptionsMinutes: [30, 60, 240], autoCompleteStatusId: "done" }, workflow: [{ id: "backlog", name: "Backlog", category: "todo" }, { id: "progress", name: "In Progress", category: "in_progress" }, { id: "done", name: "Ready for delivery", category: "done" }], onSaved() {} }));
   for (const value of ["Minutes", "Hours", "Days", "30min", "1h", "4h", "Ready for delivery", "Auto done", "Save duration settings"]) assert.ok(html.includes(value), value);
   assert.doesNotMatch(html, /<option[^>]*value="backlog"|<option[^>]*value="progress"/);
+  assert.doesNotMatch(html, /<form/);
+  assert.match(html, /<button type="button"[^>]*>Save duration settings/);
 });
