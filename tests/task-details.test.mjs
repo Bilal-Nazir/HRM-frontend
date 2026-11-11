@@ -18,7 +18,8 @@ const links = load("lib/taskLinks.ts");
 const projectId = "6ae98f9c779ddf809548ee0a", taskId = "6ae98f07779ddf809548edab";
 const path = `/projects/${projectId}/tasks/${taskId}`;
 const Link = ({ children, ...props }) => React.createElement("a", props, children);
-const activity = load("components/TaskActivity.tsx", { "next/link": { __esModule: true, default: Link } });
+const richContent = load("components/RichTextContent.tsx");
+const activity = load("components/TaskActivity.tsx", { "next/link": { __esModule: true, default: Link }, "@/components/RichTextContent": richContent });
 const person = { id: "employee-1", employeeId: "employee-1", name: "Alex Example" };
 const data = {
   task: { id: taskId, projectId, key: "PR-1", title: "Task detail example", type: "task", description: "A long and readable description.", creator: person, reporter: person, assignees: [], assigneeEmployeeIds: [], priority: "medium", labels: ["frontend"], workflowStatusId: "status-1", status: { name: "Backlog" }, createdAt: "2026-11-05T08:00:00Z", updatedAt: "2026-11-05T10:00:00Z", accumulatedSeconds: 600 },
@@ -61,6 +62,8 @@ function renderDetails({ canEdit = true, tab = "all", admin = true, taskChanges 
     "next/navigation": { useParams: () => ({ projectId, taskId }), usePathname: () => `${admin ? "/admin" : ""}${path}`, useSearchParams: () => new URLSearchParams({ activity: tab }), useRouter: () => ({}) },
     "@/components/AppShell": { __esModule: true, default: ({ children }) => React.createElement("div", {}, children) },
     "@/components/ui": { ErrorBanner: () => null }, "@/components/TaskActivity": activity,
+    "@/components/RichTextEditor": { __esModule: true, default: () => null },
+    "@/components/RichTextContent": richContent,
     "@/components/TaskDurationSelect": load("components/TaskDurationSelect.tsx", { "@/lib/taskDuration": load("lib/taskDuration.ts") }), "@/lib/taskDuration": load("lib/taskDuration.ts"),
     "@/lib/api": {}, "@/lib/taskLinks": links, "@/lib/useClientClock": { useClientClock: () => null },
   }).default;
@@ -82,6 +85,15 @@ test("automatically completed tasks show Auto done and cannot restart their time
   assert.doesNotMatch(html, /Start \/ resume|Pause timer/);
   const manual = renderDetails({ taskChanges: { completionMethod: "manual", completedAt: "2026-11-10T10:00:00Z" } });
   assert.match(manual, /Manual completion/); assert.doesNotMatch(manual, /Auto done/);
+});
+
+test("task details and description history display saved formatting", () => {
+  const html = renderDetails({ taskChanges: { description: "## Delivery checklist\n\n- **Review** the design\n- Share the result" } });
+  assert.match(html, /<h2>Delivery checklist<\/h2>/);
+  assert.match(html, /<li><strong>Review<\/strong> the design<\/li>/);
+  const history = renderToStaticMarkup(React.createElement(activity.default, { data: { ...data, activity: [{ id: "description-change", actor: person, action: "task.updated", createdAt: "2026-11-11T08:00:00Z", fieldChanges: [{ field: "description", label: "Description", before: "Old brief", after: "**Updated brief**" }] }] }, tab: "history", admin: true, now: null }));
+  assert.match(history, /<strong>Updated brief<\/strong>/);
+  assert.doesNotMatch(history, /\*\*Updated brief\*\*/);
 });
 
 test("automatically paused tasks lock status changes and timer restart for employees", () => {

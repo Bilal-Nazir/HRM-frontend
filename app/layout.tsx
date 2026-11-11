@@ -8,6 +8,7 @@ import "./task-details.css";
 import "./attendance-devices.css";
 import "./attendance-location-review.css";
 import "./task-duration.css";
+import "./rich-text.css";
 
 export const metadata: Metadata = {
   title: "Be My Admin",

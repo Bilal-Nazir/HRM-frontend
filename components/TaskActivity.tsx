@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, Clock3 } from "lucide-react";
 import { TaskActivityTab } from "@/lib/taskLinks";
 import { TaskDetailData, TaskHistory, TaskPerson } from "@/types/taskDetails";
+import RichTextContent from "@/components/RichTextContent";
 
 export const taskDateTime = (value?: string) => value ? new Date(value).toLocaleString([], { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true }) : "Not set";
 export const taskDuration = (seconds: number) => `${Math.floor(Math.max(0, seconds) / 3600)}h ${Math.floor((Math.max(0, seconds) % 3600) / 60)}m ${Math.floor(Math.max(0, seconds) % 60)}s`;
@@ -47,7 +48,7 @@ export default function TaskActivity({ data, tab, admin, now }: { data: TaskDeta
         <div className="task-activity-heading"><strong><TaskPersonLink person={row.person} admin={admin}/></strong> {row.kind === "comment" ? "commented" : row.kind === "worklog" ? "logged time" : actionLabels[(row.value as TaskHistory).action] || (row.value as TaskHistory).action.replaceAll(".", " ").replaceAll("_", " ")}</div>
         <time dateTime={row.at} title={taskDateTime(row.at)}>{taskDateTime(row.at)}</time>
         {row.kind === "history" && (() => { const event = row.value as TaskHistory; return <>
-          {event.fieldChanges.map((change) => <div key={change.field} className="task-history-change"><span>{change.label}</span><div><del>{["startDate", "dueDate"].includes(change.field) && change.before !== "None" ? (change.field === "dueDate" ? new Date(change.before).toLocaleDateString() : taskDateTime(change.before)) : change.before}</del><ArrowRight size={15}/><ins>{["startDate", "dueDate"].includes(change.field) && change.after !== "None" ? (change.field === "dueDate" ? new Date(change.after).toLocaleDateString() : taskDateTime(change.after)) : change.after}</ins></div></div>)}
+          {event.fieldChanges.map((change) => <div key={change.field} className="task-history-change"><span>{change.label}</span><div><del>{change.field === "description" ? <RichTextContent value={change.before}/> : ["startDate", "dueDate"].includes(change.field) && change.before !== "None" ? (change.field === "dueDate" ? new Date(change.before).toLocaleDateString() : taskDateTime(change.before)) : change.before}</del><ArrowRight size={15}/><ins>{change.field === "description" ? <RichTextContent value={change.after}/> : ["startDate", "dueDate"].includes(change.field) && change.after !== "None" ? (change.field === "dueDate" ? new Date(change.after).toLocaleDateString() : taskDateTime(change.after)) : change.after}</ins></div></div>)}
           {event.action === "attachment.added" && <p>{String(event.changes?.name || "File attached")}</p>}
           {event.action === "task.timer_paused" && typeof event.changes?.durationSeconds === "number" && <p>{taskDuration(event.changes.durationSeconds)} in this session</p>}
         </>; })()}

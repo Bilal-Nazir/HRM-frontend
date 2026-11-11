@@ -75,6 +75,7 @@ const tabs: {
 ];
 import TaskDurationSettings from "@/components/TaskDurationSettings";
 import TaskDurationSelect from "@/components/TaskDurationSelect";
+import RichTextEditor from "@/components/RichTextEditor";
 import { formatTaskDuration } from "@/lib/taskDuration";
 
 const emptyTask = {
@@ -1239,15 +1240,10 @@ export default function ProjectWorkspace() {
                     />
                   </div>
                   <div className="field full">
-                    <label>Description</label>
-                    <textarea
-                      rows={3}
+                    <RichTextEditor
                       value={taskForm.description}
-                      onChange={(e) =>
-                        setTaskForm({
-                          ...taskForm,
-                          description: e.target.value,
-                        })
+                      onChange={(description) =>
+                        setTaskForm((current) => ({ ...current, description }))
                       }
                     />
                   </div>
@@ -1395,7 +1391,7 @@ export default function ProjectWorkspace() {
             {!calendarTasks.length && !reminders.length && <EmptyState title="No scheduled work" description="Click any date or hour to add a task or reminder." />}
           </section>
         )}
-        {calendarQuickOpen && <div className="modal-backdrop"><form className="modal project-modal calendar-quick-modal" onSubmit={createCalendarItem}><div className="modal-header"><div><h2>Add to calendar</h2><p>Create scheduled work or a shared project reminder.</p></div><button type="button" className="icon-button" onClick={() => setCalendarQuickOpen(false)}><X size={18}/></button></div><div className="modal-body">{error && <ErrorBanner message={error}/>}<div className="calendar-kind-picker"><button type="button" className={calendarQuick.kind === "task" ? "active" : ""} onClick={() => setCalendarQuick({...calendarQuick,kind:"task"})}><ListChecks size={18}/><span><strong>Task</strong><small>Add scheduled work to the board</small></span></button><button type="button" className={calendarQuick.kind === "reminder" ? "active" : ""} onClick={() => setCalendarQuick({...calendarQuick,kind:"reminder"})}><BellRing size={18}/><span><strong>Reminder</strong><small>Add a shared calendar reminder</small></span></button></div><div className="form-grid"><div className="field full"><label>{calendarQuick.kind === "task" ? "Task title" : "Reminder title"}</label><input required autoFocus value={calendarQuick.title} onChange={(e) => setCalendarQuick({...calendarQuick,title:e.target.value})}/></div><div className="field full"><label>Date and time</label><input required type="datetime-local" value={calendarQuick.scheduledAt} onChange={(e) => setCalendarQuick({...calendarQuick,scheduledAt:e.target.value})}/></div><div className="field full"><label>Details (optional)</label><textarea rows={3} value={calendarQuick.note} onChange={(e) => setCalendarQuick({...calendarQuick,note:e.target.value})}/></div></div>{calendarQuick.kind === "task" && <TaskDurationSelect options={project.taskDurationOptionsMinutes || []} value={calendarQuick.durationMinutes} onChange={(value) => setCalendarQuick({ ...calendarQuick, durationMinutes: value })} setup={durationSetup}/>} {calendarQuick.kind === "task" && <p className="calendar-quick-note">The task starts in the project’s default workflow column and is assigned to you when possible. You can edit all details afterward.</p>}</div><div className="modal-actions"><button type="button" className="button button-secondary" onClick={() => setCalendarQuickOpen(false)}>Cancel</button><button className="button button-primary" disabled={saving}>{saving?"Creating…":calendarQuick.kind === "task"?"Create task":"Create reminder"}</button></div></form></div>}
+        {calendarQuickOpen && <div className="modal-backdrop"><form className="modal project-modal calendar-quick-modal" onSubmit={createCalendarItem}><div className="modal-header"><div><h2>Add to calendar</h2><p>Create scheduled work or a shared project reminder.</p></div><button type="button" className="icon-button" onClick={() => setCalendarQuickOpen(false)}><X size={18}/></button></div><div className="modal-body">{error && <ErrorBanner message={error}/>}<div className="calendar-kind-picker"><button type="button" className={calendarQuick.kind === "task" ? "active" : ""} onClick={() => setCalendarQuick({...calendarQuick,kind:"task"})}><ListChecks size={18}/><span><strong>Task</strong><small>Add scheduled work to the board</small></span></button><button type="button" className={calendarQuick.kind === "reminder" ? "active" : ""} onClick={() => setCalendarQuick({...calendarQuick,kind:"reminder"})}><BellRing size={18}/><span><strong>Reminder</strong><small>Add a shared calendar reminder</small></span></button></div><div className="form-grid"><div className="field full"><label>{calendarQuick.kind === "task" ? "Task title" : "Reminder title"}</label><input required autoFocus value={calendarQuick.title} onChange={(e) => setCalendarQuick({...calendarQuick,title:e.target.value})}/></div><div className="field full"><label>Date and time</label><input required type="datetime-local" value={calendarQuick.scheduledAt} onChange={(e) => setCalendarQuick({...calendarQuick,scheduledAt:e.target.value})}/></div><div className="field full">{calendarQuick.kind === "task" ? <RichTextEditor label="Description" compact value={calendarQuick.note} onChange={(note) => setCalendarQuick((current) => ({ ...current, note }))}/> : <><label>Details (optional)</label><textarea rows={3} value={calendarQuick.note} onChange={(e) => setCalendarQuick({...calendarQuick,note:e.target.value})}/></>}</div></div>{calendarQuick.kind === "task" && <TaskDurationSelect options={project.taskDurationOptionsMinutes || []} value={calendarQuick.durationMinutes} onChange={(value) => setCalendarQuick({ ...calendarQuick, durationMinutes: value })} setup={durationSetup}/>} {calendarQuick.kind === "task" && <p className="calendar-quick-note">The task starts in the project’s default workflow column and is assigned to you when possible. You can edit all details afterward.</p>}</div><div className="modal-actions"><button type="button" className="button button-secondary" onClick={() => setCalendarQuickOpen(false)}>Cancel</button><button className="button button-primary" disabled={saving}>{saving?"Creating…":calendarQuick.kind === "task"?"Create task":"Create reminder"}</button></div></form></div>}
         {memberModal && (
           <div className="modal-backdrop">
             <div className="modal project-modal">
