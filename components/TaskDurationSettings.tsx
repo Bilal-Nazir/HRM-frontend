@@ -2,22 +2,19 @@
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { formatTaskDuration } from "@/lib/taskDuration";
-import { Project, WorkflowStatus } from "@/types";
+import { Project } from "@/types";
 import { ErrorBanner } from "@/components/ui";
 
 export default function TaskDurationSettings({
   project,
-  workflow,
   onSaved,
 }: {
   project: Project;
-  workflow: WorkflowStatus[];
   onSaved: (project: Project) => void;
 }) {
   const [options, setOptions] = useState<number[]>(
-      project.taskDurationOptionsMinutes || [],
-    ),
-    [target, setTarget] = useState(project.autoCompleteStatusId || "");
+    project.taskDurationOptionsMinutes || [],
+  );
   const [amount, setAmount] = useState("30"),
     [unit, setUnit] = useState("1"),
     [busy, setBusy] = useState(false),
@@ -25,7 +22,6 @@ export default function TaskDurationSettings({
     [saved, setSaved] = useState(false);
   useEffect(() => {
     setOptions(project.taskDurationOptionsMinutes || []);
-    setTarget(project.autoCompleteStatusId || "");
   }, [project]);
   const add = () => {
     const minutes = Number(amount) * Number(unit);
@@ -45,7 +41,10 @@ export default function TaskDurationSettings({
   };
   const save = async (event: FormEvent) => {
     event.preventDefault();
-    if (!options.length) { setError("Add at least one task duration option."); return; }
+    if (!options.length) {
+      setError("Add at least one task duration option.");
+      return;
+    }
     setBusy(true);
     setError("");
     setSaved(false);
@@ -54,7 +53,6 @@ export default function TaskDurationSettings({
         `/projects/${project.id}/workflow/durations`,
         {
           taskDurationOptionsMinutes: options,
-          autoCompleteStatusId: target || null,
         },
       );
       onSaved(result.project);
@@ -71,10 +69,10 @@ export default function TaskDurationSettings({
     <section className="card task-duration-settings">
       <div className="card-header">
         <div>
-          <h2>Task durations & automatic completion</h2>
+          <h2>Task durations & automatic pause</h2>
           <p>
-            Choose the durations task creators can select and where timed tasks
-            finish.
+            Choose the durations task creators can select. Timed tasks always
+            move to Pause.
           </p>
         </div>
       </div>
@@ -141,32 +139,12 @@ export default function TaskDurationSettings({
             <small>No duration choices yet. Add your first option above.</small>
           )}
         </div>
-        <label className="field">
-          Completion column
-          <select
-            value={target}
-            onChange={(e) => {
-              setTarget(e.target.value);
-              setSaved(false);
-            }}
-            required
-            disabled={busy}
-          >
-            <option value="">Choose a Done-category column</option>
-            {workflow
-              .filter((status) => status.category === "done")
-              .map((status) => (
-                <option key={status.id} value={status.id}>
-                  {status.name}
-                </option>
-              ))}
-          </select>
-        </label>
         <p className="duration-setting-hint">
           Only tracked working time counts, across starts and pauses. At the
-          limit the timer stops and the task is marked Auto done. Changing these
-          choices does not change existing task durations. The completion column
-          applies to all timed tasks in this project.
+          limit the timer stops and the task moves to the default Pause column.
+          Only an admin can move an automatically paused task out of Pause. The
+          admin must increase its duration before the timer can resume. Changing
+          these choices does not change existing task durations.
         </p>
         <button className="button button-primary" disabled={busy}>
           {busy ? "Saving…" : "Save duration settings"}

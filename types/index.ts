@@ -107,6 +107,7 @@ export type Project = {
   completedTasks?: number;
   taskDurationOptionsMinutes?: number[];
   autoCompleteStatusId?: string;
+  pauseStatusId?: string;
   progress?: number;
   createdAt?: string;
   updatedAt?: string;
@@ -124,7 +125,8 @@ export type WorkflowStatus = {
   projectId: string;
   name: string;
   order: number;
-  category: "todo" | "in_progress" | "done";
+  category: "todo" | "in_progress" | "paused" | "done";
+  systemKey?: "pause";
   color: string;
   isDefault: boolean;
   isArchived: boolean;
@@ -156,6 +158,9 @@ export type ProjectTask = {
   autoCompleteAt?: string;
   completionMethod?: "manual" | "auto";
   completedAt?: string;
+  autoPaused?: boolean;
+  autoPausedAt?: string;
+  durationExtensionRequired?: boolean;
   labels: string[];
   timeStartedAt?: string;
   timeStoppedAt?: string;

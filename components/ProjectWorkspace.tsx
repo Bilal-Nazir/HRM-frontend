@@ -214,7 +214,7 @@ export default function ProjectWorkspace() {
         const result = await api.get<{ tasks: ProjectTask[] }>(`/projects/${projectId}/tasks?size=200`);
         if (cancelled) return;
         const serverTasks = new Map(result.tasks.map((task) => [task.id, task]));
-        const timerFields = (task: ProjectTask) => ({ timeStartedAt: task.timeStartedAt, timeStoppedAt: task.timeStoppedAt, accumulatedSeconds: task.accumulatedSeconds, workflowStatusId: task.workflowStatusId, completionMethod: task.completionMethod, completedAt: task.completedAt, durationMinutes: task.durationMinutes, autoCompleteAt: task.autoCompleteAt });
+        const timerFields = (task: ProjectTask) => ({ timeStartedAt: task.timeStartedAt, timeStoppedAt: task.timeStoppedAt, accumulatedSeconds: task.accumulatedSeconds, workflowStatusId: task.workflowStatusId, completionMethod: task.completionMethod, completedAt: task.completedAt, autoPaused: task.autoPaused, autoPausedAt: task.autoPausedAt, durationExtensionRequired: task.durationExtensionRequired, durationMinutes: task.durationMinutes, autoCompleteAt: task.autoCompleteAt });
         setTasks((rows) => rows.map((task) => serverTasks.has(task.id) && !moving.current.has(task.id) ? { ...task, ...timerFields(serverTasks.get(task.id)!) } : task));
       } catch { /* Keep the current board when a background refresh fails. */ }
       finally { refreshing = false; }
@@ -313,6 +313,7 @@ export default function ProjectWorkspace() {
         !doneIds.has(x.workflowStatusId),
     ).length;
   const move = async (taskId: string, statusId: string) => {
+    if (!admin && tasks.find((task) => task.id === taskId)?.autoPaused) { setError("Only an admin can move an automatically paused task."); return; }
     const old = tasks;
     if (
       moving.current.has(taskId) ||
@@ -831,10 +832,8 @@ export default function ProjectWorkspace() {
                           <article
                             role="button"
                             tabIndex={0}
-                            draggable={project.status !== "archived" && inlineEditingTaskId !== task.id}
-                            onDragStart={(e) =>
-                              e.dataTransfer.setData("taskId", task.id)
-                            }
+                            draggable={canModifyTasks && project.status !== "archived" && inlineEditingTaskId !== task.id && (admin || !task.autoPaused)}
+                            onDragStart={(e) => { if (!canModifyTasks || !admin && task.autoPaused) { e.preventDefault(); return; } e.dataTransfer.setData("taskId", task.id); }}
                             onClick={() => openTask(task)}
                             onKeyDown={(e) => {
                               if (e.target !== e.currentTarget) return;
@@ -886,7 +885,7 @@ export default function ProjectWorkspace() {
                                 if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.blur(); }
                               }}
                             /> : <h3>{boardTitle(task)}</h3>}
-                            <div className="task-duration-summary">{task.durationMinutes && <span>{formatTaskDuration(task.durationMinutes)} duration</span>}{task.completionMethod === "auto" && <span className="task-auto-done">Auto done</span>}</div>
+                            <div className="task-duration-summary">{task.durationMinutes && <span>{formatTaskDuration(task.durationMinutes)} duration</span>}{task.autoPaused ? <span className="task-auto-paused" title="Only an admin can move this task">Auto paused · Admin required</span> : task.completionMethod === "auto" && <span className="task-auto-done">Auto done</span>}</div>
                             <div className="jira-task-footer">
                               <span className="task-card-key"><Bookmark size={16} />{task.key}</span>
                               <div className="jira-task-actions">
@@ -964,7 +963,7 @@ export default function ProjectWorkspace() {
                               workflow.find(
                                 (x) => x.id === task.workflowStatusId,
                               )?.name
-                            } {task.completionMethod === "auto" && <span className="task-auto-done">Auto done</span>}
+                            } {task.autoPaused ? <span className="task-auto-paused" title="Only an admin can move this task">Auto paused · Admin required</span> : task.completionMethod === "auto" && <span className="task-auto-done">Auto done</span>}
                           </td>
                           <td>
                             <span
@@ -1052,7 +1051,7 @@ export default function ProjectWorkspace() {
           </section>
         )}
         {tab === "workflow" && admin && (<>
-          <TaskDurationSettings project={project} workflow={workflow} onSaved={setProject}/>
+          <TaskDurationSettings project={project} onSaved={setProject}/>
           <section className="card">
             <div className="card-header">
               <div>
@@ -1121,7 +1120,7 @@ export default function ProjectWorkspace() {
                     >
                       <Pencil size={14} />
                     </button>
-                    <button title="Archive" onClick={() => archiveColumn(s)}>
+                    <button title={s.systemKey === "pause" ? "The default Pause column cannot be archived" : "Archive"} disabled={s.systemKey === "pause"} onClick={() => archiveColumn(s)}>
                       <Trash2 size={14} />
                     </button>
                   </div>
@@ -1497,7 +1496,7 @@ export default function ProjectWorkspace() {
                     }
                   >
                     <option value="todo">To do</option>
-                    <option value="in_progress">In progress</option>
+                    <option value="in_progress">In progress</option><option value="paused">Paused</option>
                     <option value="done">Done</option>
                   </select>
                 </div>
@@ -1570,6 +1569,7 @@ export default function ProjectWorkspace() {
                     <input
                       required
                       value={editingColumn.name}
+                      disabled={editingColumn.systemKey === "pause"}
                       onChange={(e) =>
                         setEditingColumn({
                           ...editingColumn,
@@ -1582,6 +1582,7 @@ export default function ProjectWorkspace() {
                     <label>Category</label>
                     <select
                       value={editingColumn.category}
+                      disabled={editingColumn.systemKey === "pause"}
                       onChange={(e) =>
                         setEditingColumn({
                           ...editingColumn,
@@ -1591,7 +1592,7 @@ export default function ProjectWorkspace() {
                       }
                     >
                       <option value="todo">To do</option>
-                      <option value="in_progress">In progress</option>
+                      <option value="in_progress">In progress</option><option value="paused">Paused</option>
                       <option value="done">Done</option>
                     </select>
                   </div>
@@ -1612,6 +1613,7 @@ export default function ProjectWorkspace() {
                     <label>Timer behavior</label>
                     <select
                       value={editingColumn.timerAction || "none"}
+                      disabled={editingColumn.systemKey === "pause"}
                       onChange={(e) =>
                         setEditingColumn({
                           ...editingColumn,
@@ -1630,6 +1632,7 @@ export default function ProjectWorkspace() {
                       <input
                         type="checkbox"
                         checked={editingColumn.isDefault}
+                        disabled={editingColumn.systemKey === "pause"}
                         onChange={(e) =>
                           setEditingColumn({
                             ...editingColumn,

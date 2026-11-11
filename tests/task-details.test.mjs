@@ -83,3 +83,14 @@ test("automatically completed tasks show Auto done and cannot restart their time
   const manual = renderDetails({ taskChanges: { completionMethod: "manual", completedAt: "2026-11-10T10:00:00Z" } });
   assert.match(manual, /Manual completion/); assert.doesNotMatch(manual, /Auto done/);
 });
+
+test("automatically paused tasks lock status changes and timer restart for employees", () => {
+  const taskChanges = { durationMinutes: 30, autoPaused: true, autoPausedAt: "2026-11-11T10:00:00Z", durationExtensionRequired: true, timeStoppedAt: "2026-11-11T10:00:00Z", accumulatedSeconds: 1800 };
+  const html = renderDetails({ admin: false, taskChanges });
+  assert.match(html, /Auto paused/); assert.match(html, /Only an admin can move/); assert.match(html, /increase the duration/);
+  assert.match(html, /aria-label="Task status" disabled/); assert.doesNotMatch(html, /Start \/ resume|Pause timer|Auto done/);
+  const admin = renderDetails({ admin: true, taskChanges });
+  assert.doesNotMatch(admin, /aria-label="Task status" disabled/); assert.doesNotMatch(admin, /Start \/ resume|Pause timer/);
+  const released = renderDetails({ taskChanges: { ...taskChanges, autoPaused: false } });
+  assert.match(released, /increase this task/); assert.doesNotMatch(released, /Start \/ resume/);
+});

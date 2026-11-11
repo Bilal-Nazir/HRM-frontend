@@ -25,9 +25,9 @@ test("duration picker offers configured choices and preserves a removed existing
   assert.match(noOptions, /No durations configured/); assert.match(noOptions, /<select[^>]*required/);
 });
 
-test("admin settings show custom duration units and only Done-category completion destinations", () => {
+test("admin settings show duration choices and the fixed Pause destination with admin release rules", () => {
   const Settings = load("components/TaskDurationSettings.tsx", { "@/lib/taskDuration": duration, "@/lib/api": {}, "@/components/ui": { ErrorBanner: () => null } }).default;
   const html = renderToStaticMarkup(React.createElement(Settings, { project: { id: "project", taskDurationOptionsMinutes: [30, 60, 240], autoCompleteStatusId: "done" }, workflow: [{ id: "backlog", name: "Backlog", category: "todo" }, { id: "progress", name: "In Progress", category: "in_progress" }, { id: "done", name: "Ready for delivery", category: "done" }], onSaved() {} }));
-  for (const value of ["Minutes", "Hours", "Days", "30min", "1h", "4h", "Ready for delivery", "Auto done", "Save duration settings"]) assert.ok(html.includes(value), value);
-  assert.doesNotMatch(html, /<option[^>]*value="backlog"|<option[^>]*value="progress"/);
+  for (const value of ["Minutes", "Hours", "Days", "30min", "1h", "4h", "Pause", "Only an admin", "increase its duration", "Save duration settings"]) assert.ok(html.includes(value), value);
+  assert.doesNotMatch(html, /Completion column|Auto done|Ready for delivery/);
 });

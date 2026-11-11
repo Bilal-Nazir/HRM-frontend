@@ -58,6 +58,29 @@
   font-weight: 500;
   white-space: nowrap;
 }
+.task-auto-paused {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--warning) 15%, var(--surface));
+  color: var(--ink);
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.task-pause-notice {
+  margin: 0 0 18px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--warning);
+  border-radius: 9px;
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.6;
+}
 .task-duration-summary {
   display: flex;
   align-items: center;

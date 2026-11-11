@@ -6,8 +6,8 @@ export type TaskComment = { id: string; author: TaskPerson; body: string; create
 export type TaskWorklog = { id: string; employee: TaskPerson; startedAt: string; endedAt?: string; durationSeconds: number; stopReason?: string };
 export type TaskDetailData = {
   task: ProjectTask & { creator: TaskPerson; reporter: TaskPerson; status: WorkflowStatus | null; parent: { id: string; key: string; title: string; isDeleted?: boolean } | null };
-  project: { id: string; name: string; key: string; status: string; taskDurationOptionsMinutes?: number[]; autoCompleteStatusId?: string };
-  permissions: { canEdit: boolean };
+  project: { id: string; name: string; key: string; status: string; taskDurationOptionsMinutes?: number[]; pauseStatusId?: string };
+  permissions: { canEdit: boolean; canMove?: boolean; canEditDuration?: boolean };
   workflow: WorkflowStatus[];
   children: { id: string; key: string; title: string; workflowStatusId: string }[];
   comments: TaskComment[];
