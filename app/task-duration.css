@@ -1,6 +1,18 @@
 .task-duration-settings {
   margin-bottom: 20px;
 }
+.duration-setup {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+}
+.duration-setup summary {
+  cursor: pointer;
+  color: var(--primary);
+  font-size: 13px;
+}
+.duration-setup .task-duration-settings {
+  margin-top: 12px;
+}
 .task-duration-settings .card-body {
   display: grid;
   gap: 18px;

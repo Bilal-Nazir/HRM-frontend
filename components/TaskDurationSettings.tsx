@@ -1,5 +1,5 @@
 "use client";
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { formatTaskDuration } from "@/lib/taskDuration";
 import { Project } from "@/types";
@@ -39,8 +39,7 @@ export default function TaskDurationSettings({
     setError("");
     setSaved(false);
   };
-  const save = async (event: FormEvent) => {
-    event.preventDefault();
+  const save = async () => {
     if (!options.length) {
       setError("Add at least one task duration option.");
       return;
@@ -76,7 +75,7 @@ export default function TaskDurationSettings({
           </p>
         </div>
       </div>
-      <form className="card-body" onSubmit={save}>
+      <div className="card-body">
         {error && <ErrorBanner message={error} />}{" "}
         {saved && (
           <p className="success-banner" role="status">
@@ -146,10 +145,10 @@ export default function TaskDurationSettings({
           admin must increase its duration before the timer can resume. Changing
           these choices does not change existing task durations.
         </p>
-        <button className="button button-primary" disabled={busy}>
+        <button type="button" className="button button-primary" disabled={busy} onClick={save}>
           {busy ? "Saving…" : "Save duration settings"}
         </button>
-      </form>
+      </div>
     </section>
   );
 }

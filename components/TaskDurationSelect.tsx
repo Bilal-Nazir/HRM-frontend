@@ -1,5 +1,5 @@
 "use client";
-import { useId } from "react";
+import { ReactNode, useId } from "react";
 import { formatTaskDuration } from "@/lib/taskDuration";
 
 export default function TaskDurationSelect({
@@ -7,11 +7,13 @@ export default function TaskDurationSelect({
   value,
   onChange,
   disabled = false,
+  setup,
 }: {
   options: number[];
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  setup?: ReactNode;
 }) {
   const existing = value !== "" && !options.includes(Number(value));
   const inputId = useId();
@@ -22,7 +24,7 @@ export default function TaskDurationSelect({
         id={inputId}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
+        disabled={disabled || (!options.length && !existing)}
         required
       >
         <option value="" disabled hidden>{options.length || existing ? "Select duration" : "No durations configured"}</option>
@@ -37,6 +39,10 @@ export default function TaskDurationSelect({
           </option>
         ))}
       </select>
+      {!options.length && !existing && (
+        setup ? <details className="duration-setup"><summary>Configure task durations</summary>{setup}</details>
+          : <small>Ask a project admin to add duration choices in Workflow settings.</small>
+      )}
     </div>
   );
 }
