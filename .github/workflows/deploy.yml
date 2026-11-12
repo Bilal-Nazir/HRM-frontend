@@ -15,7 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Build production image
-        run: docker build --build-arg NEXT_PUBLIC_API_URL=/api --tag "hrm-frontend:$GITHUB_SHA" .
+        env:
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL || 'https://3.126.250.133/api' }}
+        run: docker build --build-arg NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" --tag "hrm-frontend:$GITHUB_SHA" .
       - name: Deploy over verified SSH
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}

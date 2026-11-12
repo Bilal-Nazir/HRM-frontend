@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { saveSession, SessionUser } from "@/lib/auth";
 import { ErrorBanner } from "@/components/ui";
-import { taskReturnPath } from "@/lib/taskLinks";
+import { authReturnPath, dashboardHref } from "@/lib/authRoutes";
 
 export default function LoginForm({
   adminMode = false,
@@ -51,7 +51,7 @@ export default function LoginForm({
         portal: adminMode ? "admin" : "employee",
       });
       saveSession(result.accessToken, result.refreshToken, result.user);
-      router.push(taskReturnPath(new URLSearchParams(window.location.search).get("next"), result.user.accountType === "admin") || (adminMode ? "/admin/dashboard" : "/dashboard"));
+      router.replace(authReturnPath(new URLSearchParams(window.location.search).get("next"), result.user.accountType) || dashboardHref(result.user.accountType));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Unable to sign in");
     } finally {

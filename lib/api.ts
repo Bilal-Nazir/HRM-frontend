@@ -1,6 +1,7 @@
-import { taskReturnPath } from "@/lib/taskLinks";
+import { clearSession, readAuthValue, updateAccessToken } from "@/lib/auth";
+import { resolveApiUrl } from "@/lib/apiUrl";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const API_URL = resolveApiUrl(process.env.NEXT_PUBLIC_API_URL, process.env.NODE_ENV === "production");
 
 type ApiEnvelope<T> = {
   success: boolean;
@@ -19,13 +20,32 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiRequest<T>(
-  path: string,
-  options: RequestInit = {},
-  allowRefresh = true,
-): Promise<T> {
-  const token = typeof window !== "undefined" ? localStorage.getItem("hrm_token") : null;
-  const refreshToken = typeof window !== "undefined" ? localStorage.getItem("hrm_refresh_token") : null;
+let refreshing: { token: string; promise: Promise<string> } | null = null;
+const authActions = new Set(["/auth/login", "/auth/refresh", "/auth/logout"]);
+
+async function refreshedToken(refreshToken: string): Promise<string> {
+  if (refreshing?.token === refreshToken) return refreshing.promise;
+  const promise = (async () => {
+    const response = await fetch(`${API_URL}/auth/refresh`, {
+      method: "POST", headers: { "Content-Type": "application/json", refreshToken }, body: JSON.stringify({ refreshToken }),
+    });
+    const body = await response.json().catch(() => ({})) as Partial<ApiEnvelope<{ accessToken: string }>>;
+    if (!response.ok) throw new ApiError(body.message || "Could not refresh your session", response.status);
+    const token = body.data?.accessToken;
+    if (typeof token !== "string" || !token) throw new ApiError("Invalid session response", 502);
+    // A response from a previous login must never restore credentials after logout.
+    if (readAuthValue("hrm_refresh_token") !== refreshToken) throw new ApiError("Session changed", 401);
+    updateAccessToken(token);
+    return token;
+  })();
+  const flight = { token: refreshToken, promise };
+  refreshing = flight;
+  try { return await promise; }
+  finally { if (refreshing === flight) refreshing = null; }
+}
+
+async function authenticatedFetch(path: string, options: RequestInit, allowRefresh: boolean): Promise<Response> {
+  const token = readAuthValue("hrm_token"), refreshToken = readAuthValue("hrm_refresh_token");
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
@@ -35,29 +55,31 @@ export async function apiRequest<T>(
       ...options.headers,
     },
   });
-
-  const body = await response.json().catch(() => ({})) as Partial<ApiEnvelope<T>>;
-  if (response.status === 401 && allowRefresh && refreshToken && path !== "/auth/refresh") {
-    const refreshResponse = await fetch(`${API_URL}/auth/refresh`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", refreshToken },
-      body: JSON.stringify({ refreshToken }),
-    });
-    const refreshBody = await refreshResponse.json().catch(() => ({})) as Partial<ApiEnvelope<{ accessToken: string }>>;
-    const nextAccessToken = refreshBody.data?.accessToken;
-    if (refreshResponse.ok && nextAccessToken) {
-      localStorage.setItem("hrm_token", nextAccessToken);
-      return apiRequest<T>(path, options, false);
-    }
-    localStorage.removeItem("hrm_token");
-    localStorage.removeItem("hrm_refresh_token");
-    localStorage.removeItem("hrm_user");
-    if (typeof window !== "undefined") {
-      const admin = window.location.pathname.startsWith("/admin");
-      const next = taskReturnPath(`${window.location.pathname}${window.location.search}`, admin);
-      window.location.assign(`${admin ? "/admin/login" : "/login"}${next ? `?next=${encodeURIComponent(next)}` : ""}`);
+  if (response.status !== 401 || authActions.has(path)) return response;
+  if (readAuthValue("hrm_refresh_token") !== refreshToken) throw new ApiError("Session changed", 401);
+  if (allowRefresh && refreshToken) {
+    try {
+      // Another request may already have refreshed this access token.
+      if (readAuthValue("hrm_token") === token) await refreshedToken(refreshToken);
+      return await authenticatedFetch(path, options, false);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401 && readAuthValue("hrm_refresh_token") === refreshToken) clearSession();
+      throw error;
     }
   }
+  // No refresh token, or the refreshed token was rejected. Hide all guarded UI.
+  if (readAuthValue("hrm_token") === token) clearSession();
+  return response;
+}
+
+export async function apiRequest<T>(
+  path: string,
+  options: RequestInit = {},
+  allowRefresh = true,
+): Promise<T> {
+  const response = await authenticatedFetch(path, options, allowRefresh);
+
+  const body = await response.json().catch(() => ({})) as Partial<ApiEnvelope<T>>;
   if (!response.ok) {
     throw new ApiError(body.message || "Request failed", response.status, (body.data || {}) as Record<string, unknown>);
   }
@@ -72,8 +94,7 @@ export const api = {
     apiRequest<T>(path, { method: "PATCH", body: JSON.stringify(data || {}) }),
   delete: <T>(path: string, data?: unknown) => apiRequest<T>(path, { method: "DELETE", ...(data ? { body: JSON.stringify(data) } : {}) }),
   download: async (path: string) => {
-    const token = localStorage.getItem("hrm_token");
-    const response = await fetch(`${API_URL}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    const response = await authenticatedFetch(path, {}, true);
     if (!response.ok) throw new ApiError("Could not download attachment", response.status);
     return response.blob();
   },

@@ -30,7 +30,6 @@ import { Employee, Project } from "@/types";
 import { useClientClock } from "@/lib/useClientClock";
 import NotificationCenter from "@/components/NotificationCenter";
 import { api } from "@/lib/api";
-import { taskReturnPath } from "@/lib/taskLinks";
 
 const navigation = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -71,18 +70,7 @@ export default function AppShell({
 
   useEffect(() => {
     const session = getSession();
-    if (!session || !localStorage.getItem("hrm_token")) {
-      const next = taskReturnPath(`${pathname}${window.location.search}`, isAdmin);
-      router.replace(`${isAdmin ? "/admin/login" : "/login"}${next ? `?next=${encodeURIComponent(next)}` : ""}`);
-      return;
-    }
-    const expectedAccountType = isAdmin ? "admin" : "employee";
-    if (session.accountType !== expectedAccountType) {
-      router.replace(
-        taskReturnPath(`${pathname}${window.location.search}`, session.accountType === "admin") || (session.accountType === "admin" ? "/admin/dashboard" : "/dashboard"),
-      );
-      return;
-    }
+    if (!session) return;
     setUser(session);
     api.get<{ employee: Employee }>("/employee/me").then((result) => setProfile(result.employee)).catch(() => setProfile(null));
     api.get<{ projects: Project[] }>("/projects?size=50").then((result) => setProjects(result.projects || [])).catch(() => setProjects([]));

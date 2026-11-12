@@ -1,33 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { taskReturnPath } from "@/lib/taskLinks";
-
-const employeePages = [
-  "/dashboard",
-  "/employees",
-  "/projects",
-  "/attendance",
-  "/leave",
-  "/announcements",
-  "/terms",
-  "/settings",
-];
+import { dashboardHref, loginHref, protectedPortal } from "@/lib/authRoutes";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const accountType = request.cookies.get("hrm_account_type")?.value;
-  if (pathname === "/" && accountType) {
-    return NextResponse.redirect(new URL(accountType === "admin" ? "/admin/dashboard" : "/dashboard", request.url));
+  const cookie = request.cookies.get("hrm_account_type")?.value;
+  const accountType = cookie === "admin" || cookie === "employee" ? cookie : null;
+  if ((pathname === "/" || pathname === "/admin") && accountType) {
+    return NextResponse.redirect(new URL(dashboardHref(accountType), request.url));
   }
-  const isAdminPage = pathname.startsWith("/admin/") && pathname !== "/admin/login";
-  const isEmployeePage = employeePages.some(
-    (page) => pathname === page || pathname.startsWith(`${page}/`),
-  );
-
-  if (isAdminPage && accountType === "employee") {
-    return NextResponse.redirect(new URL(taskReturnPath(`${pathname}${request.nextUrl.search}`, false) || "/dashboard", request.url));
+  const portal = protectedPortal(pathname);
+  // This cookie is only a routing hint. AuthGuard verifies the actual token.
+  if (portal && !accountType) {
+    return NextResponse.redirect(new URL(loginHref(pathname, request.nextUrl.search), request.url));
   }
-  if (isEmployeePage && accountType === "admin") {
-    return NextResponse.redirect(new URL(taskReturnPath(`${pathname}${request.nextUrl.search}`, true) || "/admin/dashboard", request.url));
+  if (portal && accountType && portal !== accountType) {
+    return NextResponse.redirect(new URL(taskReturnPath(`${pathname}${request.nextUrl.search}`, accountType === "admin") || dashboardHref(accountType), request.url));
   }
 
   return NextResponse.next();
