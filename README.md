@@ -37,6 +37,31 @@ Restart the dev server after changing this value. `.env.local` is ignored by Git
 
 ## Independent hosting
 
+### Cloudflare Workers
+
+The committed `wrangler.jsonc` and `open-next.config.ts` configure OpenNext for
+the existing Worker **`bemyadmin-frontend`**. `WORKER_SELF_REFERENCE` must target
+that same Worker name. Keep these names aligned if the Worker is renamed.
+
+In Workers Builds, use `npm run deploy` as the deploy command and leave the
+separate build command empty (the deploy script performs the build). Replace the
+old `npx wrangler deploy` command, which relied on interactive framework setup.
+Set `NEXT_PUBLIC_API_URL=https://3.126.250.133/api` in build variables.
+No R2 bucket or Cloudflare Images resource is required by this frontend.
+
+```sh
+npm run build:cloudflare  # Next.js build plus Workers bundle
+npm run preview           # Preview in the Workers runtime
+npm run deploy            # Build and deploy with existing Cloudflare credentials
+```
+
+The Next.js build writes `.next`; OpenNext then generates `.open-next/worker.js`
+and `.open-next/assets`. These generated directories are ignored by Git. Configure
+the adapter in source control rather than running an automatic migration during
+every deployment.
+
+### Other Next.js hosts
+
 On a Next.js host, import this repository, choose `main`, and set
 `NEXT_PUBLIC_API_URL=https://3.126.250.133/api` before building. Use `npm run build`
 as the build command. The production default is the same deployed backend address.
@@ -70,7 +95,7 @@ node --test tests/*.test.mjs
 npm run build
 ```
 
-Pushes and pull requests to `main` run frontend tests and a production build.
+Pushes and pull requests to `main` run frontend tests and a Cloudflare production build.
 The optional AWS deployment workflow runs on `prod` or manual dispatch and needs
 `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, and `DEPLOY_KNOWN_HOSTS` secrets.
 Set the repository variable `NEXT_PUBLIC_API_URL` to override the backend address
