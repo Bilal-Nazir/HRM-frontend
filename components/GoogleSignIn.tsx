@@ -112,6 +112,7 @@ export default function GoogleSignIn({
   if (!enabled) return null;
   return (
     <section className="google-signin">
+      <div className="login-divider">or</div>
       <Script
         src="https://accounts.google.com/gsi/client"
         strategy="afterInteractive"
@@ -139,7 +140,6 @@ export default function GoogleSignIn({
       <div ref={container} aria-label="Continue with Google" aria-busy={busy} />
       {busy && <p role="status">Signing in…</p>}
       <p>{portal === "admin" ? "Access is limited to existing Super Admin accounts." : "New here? Continue with Google to create your account and company."}</p>
-      <div className="login-divider">or use your existing login</div>
     </section>
   );
 }

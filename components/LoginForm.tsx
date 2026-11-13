@@ -109,7 +109,6 @@ export default function LoginForm({
               Password updated. Sign in with your new password.
             </div>
           )}
-          <GoogleSignIn portal={adminMode ? "admin" : "employee"} onSuccess={signedIn} onError={setError}/>
           <form onSubmit={submit} aria-label="Sign in">
             <div className="field">
               <label>{adminMode ? "Super Admin ID or email" : "Employee ID or email"}</label>
@@ -168,6 +167,7 @@ export default function LoginForm({
               )}
             </button>
           </form>
+          <GoogleSignIn portal={adminMode ? "admin" : "employee"} onSuccess={signedIn} onError={setError}/>
         </div>
       </section>
     </main>
