@@ -9,7 +9,7 @@ import ts from "typescript";
 
 const require = createRequire(import.meta.url);
 function load(path, mocks = {}) {
-  const scope = { exports: {}, Date, URLSearchParams, require: (name) => name in mocks ? mocks[name] : require(name) };
+  const scope = { exports: {}, Date, URLSearchParams, require: (name) => name in mocks ? mocks[name] : name === "@/lib/access" ? load("lib/access.ts") : name === "@/lib/auth" ? { getSession: () => null } : require(name) };
   const source = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
   runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText, scope);
   return scope.exports;
@@ -58,6 +58,7 @@ function renderDetails({ canEdit = true, tab = "all", admin = true, taskChanges 
   const state = [ { ...data, task: { ...data.task, ...taskChanges }, permissions: { canEdit } }, [], false ];
   const hooks = { ...React, useState: (initial) => [stateIndex < state.length ? state[stateIndex++] : (stateIndex++, initial), () => {}], useEffect: () => {}, useCallback: (fn) => fn, useRef: (value) => ({ current: value }) };
   const component = load("components/TaskDetails.tsx", {
+    "@/lib/auth": { getSession: () => ({ isPlatformAdmin: admin, isCompanyOwner: admin, permissions: admin ? ["*"] : [] }) },
     react: hooks, "next/link": { __esModule: true, default: Link },
     "next/navigation": { useParams: () => ({ projectId, taskId }), usePathname: () => `${admin ? "/admin" : ""}${path}`, useSearchParams: () => new URLSearchParams({ activity: tab }), useRouter: () => ({}) },
     "@/components/AppShell": { __esModule: true, default: ({ children }) => React.createElement("div", {}, children) },

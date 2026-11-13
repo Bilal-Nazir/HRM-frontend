@@ -13,7 +13,9 @@ import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { saveSession, SessionUser } from "@/lib/auth";
 import { ErrorBanner } from "@/components/ui";
-import { authReturnPath, dashboardHref } from "@/lib/authRoutes";
+import GoogleSignIn from "@/components/GoogleSignIn";
+import { CompanySession } from "@/lib/companies";
+import { authReturnPath, isAccountPath, portalForUser, sessionHome } from "@/lib/authRoutes";
 
 export default function LoginForm({
   adminMode = false,
@@ -32,10 +34,16 @@ export default function LoginForm({
     );
   }, []);
   const [form, setForm] = useState({
-    organizationSlug: "novacto",
+    organizationSlug: "",
     loginId: "",
     password: "",
   });
+
+  const signedIn = (result: CompanySession) => {
+    saveSession(result.accessToken, result.refreshToken, result.user);
+    const next = authReturnPath(new URLSearchParams(window.location.search).get("next"), portalForUser(result.user));
+    router.replace(next && (result.user.organizationId || isAccountPath(next.split("?")[0])) ? next : sessionHome(result.user));
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -50,8 +58,7 @@ export default function LoginForm({
         ...form,
         portal: adminMode ? "admin" : "employee",
       });
-      saveSession(result.accessToken, result.refreshToken, result.user);
-      router.replace(authReturnPath(new URLSearchParams(window.location.search).get("next"), result.user.accountType) || dashboardHref(result.user.accountType));
+      signedIn(result);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Unable to sign in");
     } finally {
@@ -102,7 +109,7 @@ export default function LoginForm({
           <p>Sign in to continue.</p>
           <div className="workspace-chip">
             <Building2 size={14} />
-            <span>NovaCTO</span>
+            <span>{adminMode ? "Super Admin only" : "Company admins & employees"}</span>
           </div>
           {error && <ErrorBanner message={error} />}
           {passwordChanged && (
@@ -110,9 +117,10 @@ export default function LoginForm({
               Password updated. Sign in with your new password.
             </div>
           )}
+          <GoogleSignIn portal={adminMode ? "admin" : "employee"} onSuccess={signedIn} onError={setError}/>
           <form onSubmit={submit}>
             <div className="field">
-              <label>Employee ID</label>
+              <label>{adminMode ? "Super Admin ID or email" : "Employee ID or email"}</label>
               <div className="input-with-icon">
                 <UserRound size={17} />
                 <input
@@ -120,7 +128,7 @@ export default function LoginForm({
                   onChange={(e) =>
                     setForm({ ...form, loginId: e.target.value })
                   }
-                  placeholder="Enter your employee ID"
+                  placeholder="Enter your employee ID or email"
                   autoComplete="username"
                   required
                 />
@@ -150,6 +158,7 @@ export default function LoginForm({
                 </button>
               </div>
             </div>
+            <div className="field"><label htmlFor="company-login-id">Company ID <span className="muted">(optional)</span></label><input id="company-login-id" value={form.organizationSlug} onChange={(event) => setForm({ ...form, organizationSlug: event.target.value })} placeholder="For example, novacto" autoComplete="organization"/></div>
             <label className="remember-me">
               <input type="checkbox" /> <span>Keep me signed in</span>
             </label>

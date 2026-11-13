@@ -4,9 +4,9 @@ import "@/app/admin-home.css";
 import "@/app/dashboard-engagement.css";
 import EmployeeDashboard from "@/components/EmployeeDashboard";
 import AdminHome from "@/components/AdminHome";
-import { usePathname } from "next/navigation";
+import { getSession } from "@/lib/auth";
+import { canViewCompanyReports } from "@/lib/access";
 
 export default function DashboardPage() {
-  const pathname = usePathname();
-  return pathname.startsWith("/admin") ? <AdminHome /> : <EmployeeDashboard />;
+  return canViewCompanyReports(getSession()) ? <AdminHome /> : <EmployeeDashboard />;
 }

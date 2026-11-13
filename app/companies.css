@@ -1,0 +1,200 @@
+.companies-page {
+  max-width: 1200px;
+  margin: auto;
+  padding: 32px 28px 80px;
+  color: var(--ink);
+  min-height: 100vh;
+}
+.companies-header,
+.companies-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.companies-intro {
+  margin: 64px 0 30px;
+  display: block;
+}
+.companies-intro h1 {
+  font-size: clamp(28px, 4vw, 42px);
+  margin: 12px 0;
+}
+.companies-intro p {
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+.company-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+}
+.company-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 28px;
+}
+.company-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+.company-tile h2,
+.company-tile p {
+  margin: 0;
+}
+.company-tile .button {
+  align-self: stretch;
+  justify-content: center;
+}
+.company-tile-icon {
+  color: var(--primary);
+  background: var(--primary-soft);
+  padding: 15px;
+  border-radius: 14px;
+}
+.company-badge {
+  font-size: 12px;
+  color: var(--muted);
+}
+.company-create {
+  max-width: 650px;
+  margin-bottom: 28px;
+  display: grid;
+  gap: 18px;
+}
+.company-panel label {
+  display: grid;
+  gap: 8px;
+  font-weight: 600;
+}
+.company-panel small {
+  font-weight: 400;
+  color: var(--muted);
+}
+.company-panel input,
+.company-panel select,
+.company-panel textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+}
+.company-switcher {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  margin: 0 16px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  text-decoration: none;
+  background: var(--surface);
+}
+.company-switcher span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+.company-switcher small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.company-switcher strong {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.company-settings {
+  display: grid;
+  gap: 24px;
+}
+.company-settings .company-panel {
+  display: grid;
+  gap: 16px;
+}
+.company-settings h2,
+.company-settings p {
+  margin: 0;
+}
+.company-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+.company-permissions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+  max-height: 260px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.company-permissions label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 400;
+}
+.company-permissions input {
+  width: auto;
+}
+.company-role-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.company-role-row small {
+  flex: 1;
+}
+.company-invitation {
+  word-break: break-all;
+}
+.google-signin {
+  margin: 20px 0;
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+.google-signin > p {
+  font-size: 12px;
+  color: var(--muted);
+}
+.login-divider {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  width: 100%;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+@media (max-width: 600px) {
+  .companies-page {
+    padding: 20px 16px;
+  }
+  .company-panel {
+    padding: 20px;
+  }
+  .companies-intro {
+    margin-top: 36px;
+  }
+}
+.companies-header .brand-mark {
+  display: grid;
+  place-items: center;
+}

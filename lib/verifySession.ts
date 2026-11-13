@@ -25,7 +25,8 @@ export async function verifySession(): Promise<{ user: unknown }> {
     const claims = JSON.parse(atob(encoded)) as Record<string, unknown>;
     const user = {
       userId: claims.userId, loginId: current.loginId, permissions: claims.permissions,
-      accountType: claims.accountType, employeeId: claims.employeeId, organizationId: claims.organizationId,
+      isPlatformAdmin: claims.isPlatformAdmin === true, isCompanyOwner: claims.isCompanyOwner === true, companyName: claims.companyName, companySlug: claims.companySlug,
+      accountType: claims.isPlatformAdmin === true ? "admin" : "employee", employeeId: claims.employeeId, organizationId: claims.organizationId,
     };
     if (!isSessionUser(user) || user.userId !== current.userId || claims.tokenType !== "access" || typeof claims.exp !== "number" || claims.exp * 1000 <= Date.now()) throw new Error("Invalid token");
     updateAccessToken(token);

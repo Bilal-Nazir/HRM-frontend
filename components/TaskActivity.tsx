@@ -1,4 +1,6 @@
 "use client";
+import { hasPermission } from "@/lib/access";
+import { getSession } from "@/lib/auth";
 
 import Link from "next/link";
 import { ArrowRight, Clock3 } from "lucide-react";
@@ -10,7 +12,7 @@ export const taskDateTime = (value?: string) => value ? new Date(value).toLocale
 export const taskDuration = (seconds: number) => `${Math.floor(Math.max(0, seconds) / 3600)}h ${Math.floor((Math.max(0, seconds) % 3600) / 60)}m ${Math.floor(Math.max(0, seconds) % 60)}s`;
 
 export function TaskPersonLink({ person, admin }: { person: TaskPerson; admin: boolean }) {
-  return admin && person.employeeId ? <Link className="task-person-link" href={`/admin/employees/${person.employeeId}`}>{person.name}</Link> : <span>{person.name}</span>;
+  return (admin || hasPermission(getSession(), "employee.read.all")) && person.employeeId ? <Link className="task-person-link" href={`${admin ? "/admin" : ""}/employees/${person.employeeId}`}>{person.name}</Link> : <span>{person.name}</span>;
 }
 
 const actionLabels: Record<string, string> = {

@@ -11,6 +11,7 @@ import "./attendance-location-review.css";
 import "./task-duration.css";
 import "./rich-text.css";
 import "./auth.css";
+import "./companies.css";
 
 export const metadata: Metadata = {
   title: "Be My Admin",

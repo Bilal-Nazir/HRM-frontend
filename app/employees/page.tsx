@@ -1,4 +1,6 @@
 "use client";
+import { portalPrefix, hasPermission } from "@/lib/access";
+import { getSession } from "@/lib/auth";
 
 import AppShell from "@/components/AppShell";
 import { EmptyState, ErrorBanner, PageHeader, StatusPill } from "@/components/ui";
@@ -67,13 +69,13 @@ export default function EmployeesPage() {
         title={`Open ${employee.firstName} ${employee.lastName}'s profile`}
         onClick={(event) => {
           if ((event.target as HTMLElement).closest("a,button,input,select,textarea")) return;
-          router.push(`/admin/employees/${employee.id}`);
+          router.push(`${portalPrefix(getSession())}/employees/${employee.id}`);
         }}
         onKeyDown={(event) => {
           if (event.target !== event.currentTarget) return;
-          if (event.key === "Enter" || event.key === " ") { event.preventDefault(); router.push(`/admin/employees/${employee.id}`); }
+          if (event.key === "Enter" || event.key === " ") { event.preventDefault(); router.push(`${portalPrefix(getSession())}/employees/${employee.id}`); }
         }}
-      ><td><div className="person-cell"><div className="avatar">{employee.firstName[0]}{employee.lastName[0]}</div><div><Link href={`/admin/employees/${employee.id}`}><strong>{employee.firstName} {employee.lastName}</strong></Link><span>{employee.workEmail}</span></div></div></td><td>{employee.employeeCode}</td><td>{employee.jobTitle || "—"}</td><td style={{textTransform:"capitalize"}}>{employee.employmentType || "—"}</td><td><StatusPill value={employee.employmentStatus}/></td><td><div className="admin-table-actions" onClick={(event) => event.stopPropagation()}><button className="button button-secondary" disabled={saving} onClick={()=>startEdit(employee)}>Edit</button><button className="button button-secondary" disabled={saving} onClick={()=>void archive(employee)}>Delete</button></div></td></tr>)}</tbody></table></div>}
+      ><td><div className="person-cell"><div className="avatar">{employee.firstName[0]}{employee.lastName[0]}</div><div><Link href={`${portalPrefix(getSession())}/employees/${employee.id}`}><strong>{employee.firstName} {employee.lastName}</strong></Link><span>{employee.workEmail}</span></div></div></td><td>{employee.employeeCode}</td><td>{employee.jobTitle || "—"}</td><td style={{textTransform:"capitalize"}}>{employee.employmentType || "—"}</td><td><StatusPill value={employee.employmentStatus}/></td><td><div className="admin-table-actions" onClick={(event) => event.stopPropagation()}><button className="button button-secondary" disabled={saving} onClick={()=>startEdit(employee)}>Edit</button><button className="button button-secondary" disabled={saving} onClick={()=>void archive(employee)}>Delete</button></div></td></tr>)}</tbody></table></div>}
     </section>
 
     {modal && <div className="modal-backdrop"><form className="modal" onSubmit={create}><div className="modal-header"><div><h2>{editing ? "Edit employee" : "Add employee"}</h2><p>{editing ? "Update their profile details." : "Create their profile and initial login account."}</p></div><button type="button" className="icon-button" onClick={()=>setModal(false)}><X size={18}/></button></div><div className="modal-body">{error&&<ErrorBanner message={error}/>}<div className="form-grid">

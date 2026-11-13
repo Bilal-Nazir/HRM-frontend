@@ -42,6 +42,7 @@ import {
 import AppShell from "@/components/AppShell";
 import { EmptyState, ErrorBanner, StatusPill } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
+import { canManageProjects, isCompanyAdministrator, portalPrefix } from "@/lib/access";
 import { getSession } from "@/lib/auth";
 import { useClientClock } from "@/lib/useClientClock";
 import { taskDetailsHref } from "@/lib/taskLinks";
@@ -122,8 +123,10 @@ export default function ProjectWorkspace() {
     pathname = usePathname(),
     router = useRouter(),
     searchParams = useSearchParams(),
-    admin = pathname.startsWith("/admin"),
-    prefix = admin ? "/admin" : "";
+    prefix = portalPrefix(getSession()),
+    adminRoute = prefix === "/admin",
+    admin = canManageProjects(getSession()),
+    companyAdmin = isCompanyAdministrator(getSession());
   const now = useClientClock();
   const session = typeof window !== "undefined" ? getSession() : null;
   const filterKey = projectFilterKey(session, projectId);
@@ -317,7 +320,7 @@ export default function ProjectWorkspace() {
         !doneIds.has(x.workflowStatusId),
     ).length;
   const move = async (taskId: string, statusId: string) => {
-    if (!admin && tasks.find((task) => task.id === taskId)?.autoPaused) { setError("Only an admin can move an automatically paused task."); return; }
+    if (!companyAdmin && tasks.find((task) => task.id === taskId)?.autoPaused) { setError("Only an admin can move an automatically paused task."); return; }
     const old = tasks;
     if (
       moving.current.has(taskId) ||
@@ -419,11 +422,11 @@ export default function ProjectWorkspace() {
       setSaving(false);
     }
   };
-  const openTask = (task: ProjectTask) => router.push(`${taskDetailsHref(projectId, task.id, admin)}?from=${encodeURIComponent(`${pathname}${searchParams.size ? `?${searchParams}` : ""}`)}`);
+  const openTask = (task: ProjectTask) => router.push(`${taskDetailsHref(projectId, task.id, adminRoute)}?from=${encodeURIComponent(`${pathname}${searchParams.size ? `?${searchParams}` : ""}`)}`);
   const requestedTaskId = searchParams.get("task");
   useEffect(() => {
-    if (requestedTaskId) router.replace(taskDetailsHref(projectId, requestedTaskId, admin));
-  }, [requestedTaskId, projectId, admin, router]);
+    if (requestedTaskId) router.replace(taskDetailsHref(projectId, requestedTaskId, adminRoute));
+  }, [requestedTaskId, projectId, adminRoute, router]);
   const beginInlineEdit = (task: ProjectTask) => {
     cancelInlineEdit.current = false;
     setTaskMenu(null);
@@ -836,8 +839,8 @@ export default function ProjectWorkspace() {
                           <article
                             role="button"
                             tabIndex={0}
-                            draggable={canModifyTasks && project.status !== "archived" && inlineEditingTaskId !== task.id && (admin || !task.autoPaused)}
-                            onDragStart={(e) => { if (!canModifyTasks || !admin && task.autoPaused) { e.preventDefault(); return; } e.dataTransfer.setData("taskId", task.id); }}
+                            draggable={canModifyTasks && project.status !== "archived" && inlineEditingTaskId !== task.id && (companyAdmin || !task.autoPaused)}
+                            onDragStart={(e) => { if (!canModifyTasks || !companyAdmin && task.autoPaused) { e.preventDefault(); return; } e.dataTransfer.setData("taskId", task.id); }}
                             onClick={() => openTask(task)}
                             onKeyDown={(e) => {
                               if (e.target !== e.currentTarget) return;
@@ -1149,7 +1152,7 @@ export default function ProjectWorkspace() {
                     <strong>{a.action.replaceAll(".", " ")}</strong>
                     <span>{new Date(a.createdAt).toLocaleString([], { hour12: true })}</span>
                   </div>
-                  {a.taskId && <Link className="task-person-link" href={taskDetailsHref(projectId, a.taskId, admin, "history")}>View task history</Link>}
+                  {a.taskId && <Link className="task-person-link" href={taskDetailsHref(projectId, a.taskId, adminRoute, "history")}>View task history</Link>}
                 </article>
               ))}
               {!activities.length && (

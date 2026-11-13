@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { taskReturnPath } from "@/lib/taskLinks";
-import { dashboardHref, loginHref, protectedPortal } from "@/lib/authRoutes";
+import { dashboardHref, isAccountPath, loginHref, protectedPortal } from "@/lib/authRoutes";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -11,7 +11,7 @@ export function middleware(request: NextRequest) {
   }
   const portal = protectedPortal(pathname);
   // This cookie is only a routing hint. AuthGuard verifies the actual token.
-  if (portal && !accountType) {
+  if ((portal || isAccountPath(pathname)) && !accountType) {
     return NextResponse.redirect(new URL(loginHref(pathname, request.nextUrl.search), request.url));
   }
   if (portal && accountType && portal !== accountType) {
@@ -24,6 +24,8 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/",
+    "/companies",
+    "/join",
     "/admin/:path*",
     "/dashboard/:path*",
     "/employees/:path*",

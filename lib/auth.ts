@@ -1,9 +1,16 @@
 export type SessionUser = {
   userId: string;
+  email?: string;
+  name?: string;
+  isPlatformAdmin?: boolean;
+  isCompanyOwner?: boolean;
+  companyName?: string;
+  companySlug?: string;
   employeeId?: string;
   organizationId?: string;
   loginId: string;
   permissions: string[];
+  // Portal identity; a company admin uses the employee/user portal.
   accountType: "admin" | "employee";
 };
 
@@ -25,7 +32,7 @@ export const readAuthValue = (key: string): string | null => {
 };
 
 const syncPortalCookie = (user: SessionUser) => {
-  document.cookie = `hrm_account_type=${user.accountType}; path=/; SameSite=Lax`;
+  document.cookie = `hrm_account_type=${user.isPlatformAdmin === true ? "admin" : "employee"}; path=/; SameSite=Lax`;
 };
 
 export const saveSession = (accessToken: string, refreshToken: string, user: SessionUser) => {

@@ -6,6 +6,7 @@ import { Megaphone, ArrowUpRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/workspace";
 import { AnnouncementList } from "@/types/workspace";
+import { portalPrefix, hasPermission } from "@/lib/access";
 import { getSession } from "@/lib/auth";
 
 export default function AnnouncementsPanel({
@@ -61,7 +62,7 @@ export default function AnnouncementsPanel({
         {compact && (
           <Link
             className="button button-secondary"
-            href={admin ? "/admin/announcements" : "/announcements"}
+            href={`${portalPrefix(getSession())}/announcements`}
           >
             {admin ? "Manage" : "View all"}
             <ArrowUpRight size={15} />
@@ -138,7 +139,7 @@ export default function AnnouncementsPanel({
         </div>
       )}
       <div className="announcement-footer">
-        <Link href={admin ? "/admin/terms" : "/terms"}>
+        <Link href={`${portalPrefix(getSession())}/terms`}>
           Company Policies <ArrowUpRight size={14} />
         </Link>
       </div>

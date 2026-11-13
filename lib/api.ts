@@ -21,7 +21,7 @@ export class ApiError extends Error {
 }
 
 let refreshing: { token: string; promise: Promise<string> } | null = null;
-const authActions = new Set(["/auth/login", "/auth/refresh", "/auth/logout"]);
+const authActions = new Set(["/auth/login", "/auth/refresh", "/auth/logout", "/auth/google"]);
 
 async function refreshedToken(refreshToken: string): Promise<string> {
   if (refreshing?.token === refreshToken) return refreshing.promise;
@@ -55,6 +55,7 @@ async function authenticatedFetch(path: string, options: RequestInit, allowRefre
       ...options.headers,
     },
   });
+  if (!authActions.has(path) && readAuthValue("hrm_refresh_token") !== refreshToken) throw new ApiError("Company or account changed. Reload this page", 409);
   if (response.status !== 401 || authActions.has(path)) return response;
   if (readAuthValue("hrm_refresh_token") !== refreshToken) throw new ApiError("Session changed", 401);
   if (allowRefresh && refreshToken) {

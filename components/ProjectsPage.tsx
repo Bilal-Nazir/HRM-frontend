@@ -6,6 +6,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import { EmptyState, ErrorBanner, PageHeader, StatusPill } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
+import { canManageProjects, portalPrefix } from "@/lib/access";
 import { getSession } from "@/lib/auth";
 import { Employee, Project } from "@/types";
 
@@ -14,12 +15,12 @@ const empty = { name:"",key:"",description:"",managerEmployeeId:"",startDate:"",
 export default function ProjectsPage() {
   const [projects,setProjects]=useState<Project[]>([]),[employees,setEmployees]=useState<Employee[]>([]),[search,setSearch]=useState(""),[status,setStatus]=useState(""),[error,setError]=useState(""),[loading,setLoading]=useState(true),[modal,setModal]=useState(false),[saving,setSaving]=useState(false),[form,setForm]=useState(empty);
   const session=typeof window!=="undefined"?getSession():null;
-  const admin=session?.accountType==="admin";
-  const prefix=admin?"/admin":"";
+  const admin=canManageProjects(session);
+  const prefix=portalPrefix(session);
   const load=useCallback(async()=>{setLoading(true);setError("");try{const data=await api.get<{projects:Project[]}>(`/projects?size=50${search?`&search=${encodeURIComponent(search)}`:""}${status?`&status=${status}`:""}`);setProjects(data.projects||[]);}catch(e){setError(e instanceof ApiError?e.message:"Could not load projects");}finally{setLoading(false)}},[search,status]);
   useEffect(()=>{const timer=setTimeout(load,220);return()=>clearTimeout(timer)},[load]);
   useEffect(()=>{if(admin)api.get<{employees:Employee[]}>("/employee/view?size=100").then(d=>setEmployees((d.employees||[]).filter(e=>e.employmentStatus==="active"))).catch(()=>{})},[admin]);
-  const create=async(e:FormEvent)=>{e.preventDefault();setSaving(true);setError("");try{const result=await api.post<{project:Project}>("/projects",form);setModal(false);setForm(empty);await load();window.location.assign(`/admin/projects/${result.project.id}/board`)}catch(err){setError(err instanceof ApiError?err.message:"Could not create project")}finally{setSaving(false)}};
+  const create=async(e:FormEvent)=>{e.preventDefault();setSaving(true);setError("");try{const result=await api.post<{project:Project}>("/projects",form);setModal(false);setForm(empty);await load();window.location.assign(`${prefix}/projects/${result.project.id}/board`)}catch(err){setError(err instanceof ApiError?err.message:"Could not create project")}finally{setSaving(false)}};
   return <AppShell><PageHeader eyebrow="Project delivery" title="Projects" description="Plan work, coordinate teams, and track delivery through flexible workflows." action={admin?<button className="button button-primary" onClick={()=>setModal(true)}><Plus size={17}/>Create project</button>:<Link className="button button-secondary" href="/projects/my-tasks">My tasks</Link>}/>
     {error&&!modal&&<ErrorBanner message={error}/>}<div className="project-toolbar"><div className="project-search"><Search size={16}/><input placeholder="Search project name or key" value={search} onChange={e=>setSearch(e.target.value)}/></div><select value={status} onChange={e=>setStatus(e.target.value)}><option value="">All statuses</option><option value="planned">Planned</option><option value="active">Active</option><option value="on_hold">On hold</option><option value="completed">Completed</option><option value="archived">Archived</option></select></div>
     {loading?<div className="loading-line"/>:!projects.length?<section className="card"><EmptyState title="No projects found" description={admin?"Create a project to organize stories, tasks, people, and delivery workflows.":"You have not been added to a project yet."}/></section>:<div className="project-card-grid">{projects.map(project=><Link key={project.id} href={`${prefix}/projects/${project.id}/board`} className="project-card"><div className="project-card-head"><span className="project-key"><FolderKanban size={15}/>{project.key}</span><StatusPill value={project.status.replace("_"," ")}/></div><h2>{project.name}</h2><p>{project.description||"No project description yet."}</p><div className="project-progress"><span><b>{project.progress||0}%</b> complete</span><span>{project.completedTasks||0}/{project.totalTasks||0} tasks</span><i><b style={{width:`${project.progress||0}%`}}/></i></div><div className="project-card-foot"><span><Users size={15}/>{project.memberCount||0} members</span><span>{project.manager?.name||"Manager not set"}</span></div></Link>)}</div>}

@@ -1,4 +1,6 @@
 "use client";
+import { portalPrefix, hasPermission } from "@/lib/access";
+import { getSession } from "@/lib/auth";
 
 import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -77,6 +79,7 @@ function toCsv(rows: Record<string, string | number>[]) {
 }
 
 export default function AdminHome() {
+  const prefix = portalPrefix(getSession());
   const [greeting, setGreeting] = useState("Welcome back");
   const today = useMemo(() => new Date(), []);
   const todayKey = useMemo(() => dateKey(today), [today]);
@@ -238,7 +241,7 @@ export default function AdminHome() {
               <Download size={16} />
               Export live view
             </button>
-            <Link href="/admin/employees" className="button button-primary">
+            <Link href={`${prefix}/employees`} className="button button-primary">
               <UserPlus size={17} />
               Add employee
             </Link>
@@ -294,7 +297,7 @@ export default function AdminHome() {
       <section className="project-dashboard-section">
         <div className="project-dashboard-heading">
           <div><span className="section-kicker">Project delivery</span><h2>Work in motion</h2><p>Live progress and delivery risk across every project.</p></div>
-          <Link href="/admin/projects">View all projects <ArrowRight size={15} /></Link>
+          <Link href={`${prefix}/projects`}>View all projects <ArrowRight size={15} /></Link>
         </div>
         {!delivery ? <div className="loading-line" /> : (
           <>
@@ -308,7 +311,7 @@ export default function AdminHome() {
               <div className="project-progress-list">
                 <h3>Project progress</h3>
                 {delivery.projects.length ? delivery.projects.map((project) => (
-                  <Link href={`/admin/projects/${project.id}`} key={project.id}>
+                  <Link href={`${prefix}/projects/${project.id}`} key={project.id}>
                     <span className="project-progress-key">{project.key}</span>
                     <div><strong>{project.name}</strong><small>{project.completedTasks} of {project.totalTasks} tasks complete{project.overdueTasks ? ` · ${project.overdueTasks} overdue` : ""}</small></div>
                     <span className="project-progress-bar"><i style={{ width: `${project.progress}%` }} /></span>
@@ -415,7 +418,7 @@ export default function AdminHome() {
         <section className="card">
           <div className="card-header">
             <div><span className="section-kicker">Approvals</span><h2>Recent requests</h2><p>Latest leave and remote-work submissions</p></div>
-            <Link href="/admin/leave" className="button button-secondary">View all</Link>
+            <Link href={`${prefix}/leave`} className="button button-secondary">View all</Link>
           </div>
           {actionError && <ErrorBanner message={actionError} />}
           {!pendingLeave.data && !pendingLeave.error && <p className="panel-message">Loading requests…</p>}

@@ -4,6 +4,9 @@ export type Portal = "admin" | "employee";
 const employeePages = ["/dashboard", "/employees", "/projects", "/attendance", "/leave", "/announcements", "/terms", "/settings"];
 
 export const dashboardHref = (portal: Portal) => portal === "admin" ? "/admin/dashboard" : "/dashboard";
+export const isAccountPath = (path: string) => ["/companies", "/join"].includes(path);
+export const portalForUser = (user: { isPlatformAdmin?: boolean }): Portal => user.isPlatformAdmin === true ? "admin" : "employee";
+export const sessionHome = (user: { organizationId?: string; accountType: Portal; isPlatformAdmin?: boolean }) => user.organizationId ? dashboardHref(portalForUser(user)) : "/companies";
 export const isLoginPath = (path: string) => path === "/login" || path === "/admin/login";
 export const isEntryPath = (path: string) => path === "/" || path === "/admin" || isLoginPath(path);
 
@@ -20,7 +23,8 @@ export function authReturnPath(value: string | null, portal: Portal): string | n
   if (task) return task;
   try {
     const url = new URL(value, "https://hrm.invalid");
-    if (url.origin !== "https://hrm.invalid" || !/^\/[a-z\d/_-]+$/i.test(url.pathname) || protectedPortal(url.pathname) !== portal) return null;
+    if (!isAccountPath(url.pathname) && protectedPortal(url.pathname) && protectedPortal(url.pathname) !== portal) url.pathname = portal === "admin" ? `/admin${url.pathname}` : url.pathname.replace(/^\/admin(?=\/)/, "");
+    if (url.origin !== "https://hrm.invalid" || !/^\/[a-z\d/_-]+$/i.test(url.pathname) || (!isAccountPath(url.pathname) && protectedPortal(url.pathname) !== portal)) return null;
     return `${url.pathname}${url.search}${url.hash}`;
   } catch {
     return null;
@@ -36,7 +40,7 @@ export function loginHref(pathname: string, search = "") {
 export function authenticatedRedirect(pathname: string, search: string, portal: Portal): string | null {
   if (isEntryPath(pathname)) return authReturnPath(new URLSearchParams(search).get("next"), portal) || dashboardHref(portal);
   if (protectedPortal(pathname) && protectedPortal(pathname) !== portal) {
-    return taskReturnPath(`${pathname}${search}`, portal === "admin") || dashboardHref(portal);
+    return authReturnPath(`${pathname}${search}`, portal) || dashboardHref(portal);
   }
   return null;
 }

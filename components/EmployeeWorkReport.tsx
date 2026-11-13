@@ -1,4 +1,6 @@
 "use client";
+import { portalPrefix, hasPermission } from "@/lib/access";
+import { getSession } from "@/lib/auth";
 
 import Link from "next/link";
 import { ArrowUpRight, CalendarDays, Clock3, ListChecks, Timer } from "lucide-react";
@@ -21,7 +23,7 @@ export type EmployeeWorkData = {
 };
 
 const duration = (seconds: number) => seconds < 60 ? `${Math.max(0, Math.floor(seconds))}s` : `${Math.floor(seconds / 3600)}h ${Math.floor(seconds % 3600 / 60)}m`;
-const taskHref = (projectId: string, taskId: string) => taskDetailsHref(projectId, taskId, true);
+const taskHref = (projectId: string, taskId: string) => taskDetailsHref(projectId, taskId, portalPrefix(getSession()) === "/admin");
 const prettyDay = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 
 export default function EmployeeWorkReport({ data, tab }: { data: EmployeeWorkData; tab: "tasks" | "requests" | "activities" }) {

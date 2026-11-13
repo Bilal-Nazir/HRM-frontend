@@ -6,14 +6,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { ApiError } from "@/lib/api";
 import { verifySession } from "@/lib/verifySession";
 import { clearSession, getSession, isSessionUser, readAuthValue, SESSION_CHANGED_EVENT, sessionKeys, updateSessionUser } from "@/lib/auth";
-import { authenticatedRedirect, isEntryPath, loginHref, protectedPortal } from "@/lib/authRoutes";
+import { authReturnPath, authenticatedRedirect, isAccountPath, isEntryPath, loginHref, portalForUser, protectedPortal } from "@/lib/authRoutes";
 
 type Gate = { path: string; status: "checking" | "ready" | "error" };
 const identity = () => `${readAuthValue("hrm_user")}\n${readAuthValue("hrm_refresh_token")}`;
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "/", router = useRouter();
-  const guarded = !!protectedPortal(pathname) || isEntryPath(pathname);
+  const guarded = !!protectedPortal(pathname) || isEntryPath(pathname) || isAccountPath(pathname);
   const [gate, setGate] = useState<Gate>({ path: "", status: "checking" });
   const [revision, setRevision] = useState(0);
 
@@ -52,7 +52,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       if (!active || identity() !== startedFor) return;
       if (!isSessionUser(result.user)) throw new Error("Invalid session response");
       updateSessionUser(result.user);
-      const destination = authenticatedRedirect(pathname, search, result.user.accountType);
+      const portal = portalForUser(result.user);
+      const requested = isEntryPath(pathname) ? authReturnPath(new URLSearchParams(search).get("next"), portal) : null;
+      const destination = requested && isAccountPath(requested.split("?")[0]) ? requested : !result.user.organizationId && !isAccountPath(pathname) ? "/companies" : authenticatedRedirect(pathname, search, portal);
       if (destination) router.replace(destination);
       else setGate({ path: pathname, status: "ready" });
     }).catch((error: unknown) => {
@@ -67,7 +69,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [pathname, guarded, revision, router]);
 
   // Render no page components (or their effects) until this exact route is checked.
-  if (!guarded || (gate.path === pathname && gate.status === "ready")) return children;
+  if (!guarded || (gate.path === pathname && gate.status === "ready")) return <div key={`${getSession()?.userId || "guest"}:${getSession()?.organizationId || "account"}`}>{children}</div>;
   return <main className="auth-gate" aria-busy={gate.status !== "error"}>
     {gate.path === pathname && gate.status === "error" ? <div className="auth-gate-error" role="alert"><h1>Unable to verify your session</h1><p>Check your connection and try again.</p><button type="button" className="button button-primary" onClick={() => setRevision((value) => value + 1)}>Try again</button></div>
       : <div className="auth-loader" role="status" aria-live="polite">

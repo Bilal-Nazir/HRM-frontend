@@ -70,7 +70,7 @@ async function fixture(t, path = "/projects/abc/board", initial = user) {
   const server = renderToStaticMarkup(React.createElement(Guard, null, React.createElement(PrivatePage)));
   assert.doesNotMatch(server, /Private task content/); assert.equal(renders, 0);
   await act(async () => render());
-  return { node, checks, redirects, ApiError, mounted: () => mounted, renders: () => renders, async navigate(path) { currentPath = path; window.history.replaceState(null, "", path); await act(async () => render()); } };
+  return { node, checks, redirects, ApiError, mounted: () => mounted, renders: () => renders, async navigate(path) { currentPath = new URL(path, window.location.origin).pathname; window.history.replaceState(null, "", path); await act(async () => render()); } };
 }
 
 test("protected pages never render or start effects before server validation, including subsequent navigation", async (t) => {
@@ -218,4 +218,63 @@ test("legacy compatibility never bypasses rejected sessions or accepts malformed
     await assert.rejects(verifier.verifySession(), (error) => error.status === 401);
     assert.equal(auth.readAuthValue("hrm_token"), "access-1");
   }
+});
+
+test("company selection is guarded for employees and owners and preserves invitation destinations", async (t) => {
+  assert.equal(routes.authReturnPath("/join?token=invitation", "employee"), "/join?token=invitation");
+  assert.equal(routes.authReturnPath("/companies", "admin"), "/companies");
+  assert.equal(routes.sessionHome({ accountType: "admin" }), "/companies");
+  assert.equal(routes.sessionHome(user), "/dashboard");
+  const f = await fixture(t, "/companies");
+  assert.equal(f.renders(), 0);
+  await act(async () => f.checks[0].resolve({ user }));
+  assert.equal(f.redirects.length, 0); assert.equal(f.mounted(), 1);
+});
+
+test("an account without an active company cannot mount company pages but can accept an invitation", async (t) => {
+  const account = { ...user, employeeId: undefined, organizationId: undefined, accountType: "admin" };
+  const f = await fixture(t, "/admin/projects", account);
+  await act(async () => f.checks[0].resolve({ user: account }));
+  assert.equal(f.mounted(), 0); assert.equal(f.redirects[0], "/companies");
+  await f.navigate("/login?next=%2Fjoin%3Ftoken%3Dinvitation");
+  await act(async () => f.checks[1].resolve({ user: account }));
+  assert.equal(f.redirects.at(-1), "/join?token=invitation");
+  await f.navigate("/join?token=invitation");
+  await act(async () => f.checks[2].resolve({ user: account }));
+  assert.equal(f.mounted(), 1);
+});
+
+test("switching companies on the same account unmounts the old company's UI", async (t) => {
+  const f = await fixture(t);
+  await act(async () => f.checks[0].resolve({ user }));
+  assert.equal(f.mounted(), 1);
+  const next = { ...user, organizationId: "company-two", employeeId: "employee-two" };
+  await act(async () => auth.saveSession("company-two-access", "company-two-refresh", next));
+  assert.doesNotMatch(f.node.innerHTML, /Private task content/);
+  await act(async () => f.checks[1].resolve({ user: next }));
+  assert.equal(f.mounted(), 2); assert.equal(auth.getSession().organizationId, "company-two");
+});
+
+test("even successful old-company API responses cannot populate a newly selected company", async () => {
+  store(); const pending = deferred();
+  const api = load("lib/api.ts", { "@/lib/auth": auth }, { fetch: () => pending.promise }).api;
+  const request = api.get("/employee/view");
+  auth.saveSession("company-two-access", "company-two-refresh", { ...user, organizationId: "company-two" });
+  pending.resolve(response(200, { employees: [{ name: "Private Company One data" }] }));
+  await assert.rejects(request, (error) => error.status === 409);
+  assert.equal(auth.getSession().organizationId, "company-two");
+});
+
+test("a company owner with a stale admin claim is redirected to the user company settings before mounting", async (t) => {
+  const owner = { ...user, isCompanyOwner: true, isPlatformAdmin: false, accountType: "admin", permissions: ["*"] };
+  const f = await fixture(t, "/admin/settings/company", owner);
+  await act(async () => f.checks[0].resolve({ user: owner }));
+  assert.equal(f.mounted(), 0); assert.equal(f.redirects[0], "/settings/company");
+  assert.match(document.cookie, /hrm_account_type=employee/);
+});
+test("verified Super Admin sessions are routed away from the user dashboard to the admin portal", async (t) => {
+  const platform = { ...user, isPlatformAdmin: true, accountType: "admin", permissions: ["*"] };
+  const f = await fixture(t, "/dashboard", platform);
+  await act(async () => f.checks[0].resolve({ user: platform }));
+  assert.equal(f.mounted(), 0); assert.equal(f.redirects[0], "/admin/dashboard");
 });

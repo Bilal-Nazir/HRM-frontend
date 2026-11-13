@@ -11,7 +11,7 @@ import { canManageContent, errorMessage } from "@/lib/workspace";
 import { Terms } from "@/types/workspace";
 
 export default function TermsPage() {
-  const isAdmin = usePathname().startsWith("/admin");
+  const isAdmin = canManageContent(getSession());
   const [allowed, setAllowed] = useState(false);
   const [terms, setTerms] = useState<Terms | null>(null);
   const [loading, setLoading] = useState(true);

@@ -4,6 +4,8 @@ import { ArrowLeft, AtSign, Check, Clock3, Copy, FileUp, Paperclip, Pencil, Refr
 import Link from "next/link";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { getSession } from "@/lib/auth";
+import { isCompanyAdministrator, portalPrefix } from "@/lib/access";
 import AppShell from "@/components/AppShell";
 import { ErrorBanner } from "@/components/ui";
 import TaskActivity, { taskDateTime, taskDuration, TaskPersonLink } from "@/components/TaskActivity";
@@ -29,7 +31,7 @@ type Draft = { title: string; description: string; priority: string; labels: str
 export default function TaskDetails() {
   const { projectId, taskId } = useParams<{ projectId: string; taskId: string }>();
   const pathname = usePathname(), params = useSearchParams(), router = useRouter();
-  const admin = pathname.startsWith("/admin"), prefix = admin ? "/admin" : "";
+  const prefix = portalPrefix(getSession()), admin = prefix === "/admin", companyAdmin = isCompanyAdministrator(getSession());
   const now = useClientClock();
   const [data, setData] = useState<TaskDetailData | null>(null), [members, setMembers] = useState<ProjectMember[]>([]);
   const [loading, setLoading] = useState(true), [error, setError] = useState(""), [busy, setBusy] = useState(false), [copied, setCopied] = useState(false);
@@ -153,8 +155,8 @@ export default function TaskDetails() {
   const task = data?.task;
   const elapsed = task ? (task.accumulatedSeconds || 0) + (task.timeStartedAt && now ? Math.max(0, Math.floor((+now - +new Date(task.timeStartedAt)) / 1000)) : 0) : 0;
   const canEdit = !!data?.permissions.canEdit;
-  const canMove = data?.permissions.canMove ?? (canEdit && (!task?.autoPaused || admin));
-  const canEditDuration = data?.permissions.canEditDuration ?? (canEdit && (!task?.durationExtensionRequired || admin));
+  const canMove = data?.permissions.canMove ?? (canEdit && (!task?.autoPaused || companyAdmin));
+  const canEditDuration = data?.permissions.canEditDuration ?? (canEdit && (!task?.durationExtensionRequired || companyAdmin));
   const people = (persons: TaskPerson[]) => persons.length ? persons.map((person) => <div className="task-detail-person" key={person.id}><span className="avatar">{person.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("")}</span><TaskPersonLink person={person} admin={admin}/></div>) : <span className="task-detail-muted">Unassigned</span>;
   const suggestions = mentionQuery === null ? [] : members.filter((member) => member.employee && `${member.employee.firstName} ${member.employee.lastName} ${member.employee.employeeCode}`.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 6);
 

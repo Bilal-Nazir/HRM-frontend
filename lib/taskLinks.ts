@@ -18,5 +18,7 @@ export function notificationHref(notification: { href: string; projectId?: strin
   if (notification.projectId && notification.taskId) return taskDetailsHref(notification.projectId, notification.taskId, admin, notification.type.includes("comment") ? "comments" : undefined);
   const href = notification.href;
   if (!href.startsWith("/") || href.startsWith("//")) return admin ? "/admin" : "/dashboard";
-  return admin && !href.startsWith("/admin") ? `/admin${href}` : href;
+  if (["/companies", "/join"].some((path) => href === path || href.startsWith(`${path}?`))) return href;
+  if (!admin) return href.replace(/^\/admin(?=\/|$)/, "") || "/dashboard";
+  return /^\/admin(?:\/|$)/.test(href) ? href : `/admin${href}`;
 }

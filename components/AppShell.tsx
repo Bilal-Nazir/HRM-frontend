@@ -25,9 +25,11 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { hasPermission } from "@/lib/access";
 import { clearSession, getSession, SessionUser } from "@/lib/auth";
 import { Employee, Project } from "@/types";
 import { useClientClock } from "@/lib/useClientClock";
+import CompanySwitcher from "@/components/CompanySwitcher";
 import NotificationCenter from "@/components/NotificationCenter";
 import { api } from "@/lib/api";
 
@@ -67,6 +69,7 @@ export default function AppShell({
   const [shortcuts, setShortcuts] = useState<Shortcut[]>([]);
   const [shortcutPickerOpen, setShortcutPickerOpen] = useState(false);
   const now = useClientClock();
+  const canSearchEmployees = hasPermission(user, "employee.read.all");
 
   useEffect(() => {
     const session = getSession();
@@ -74,7 +77,7 @@ export default function AppShell({
     setUser(session);
     api.get<{ employee: Employee }>("/employee/me").then((result) => setProfile(result.employee)).catch(() => setProfile(null));
     api.get<{ projects: Project[] }>("/projects?size=50").then((result) => setProjects(result.projects || [])).catch(() => setProjects([]));
-    try { setShortcuts(JSON.parse(localStorage.getItem(`hrm_shortcuts_${session.userId}`) || "[]").slice(0, 3)); } catch { setShortcuts([]); }
+    try { setShortcuts(JSON.parse(localStorage.getItem(`hrm_shortcuts_${session.organizationId}_${session.userId}`) || "[]").slice(0, 3)); } catch { setShortcuts([]); }
   }, [isAdmin, router]);
 
   const toggleShortcut = (shortcut: Shortcut) => {
@@ -82,15 +85,15 @@ export default function AppShell({
     const exists = shortcuts.some((item) => item.href === shortcut.href);
     const next = exists ? shortcuts.filter((item) => item.href !== shortcut.href) : shortcuts.length < 3 ? [...shortcuts, shortcut] : shortcuts;
     setShortcuts(next);
-    localStorage.setItem(`hrm_shortcuts_${user.userId}`, JSON.stringify(next));
+    localStorage.setItem(`hrm_shortcuts_${user.organizationId}_${user.userId}`, JSON.stringify(next));
   };
 
   useEffect(() => {
-    if (!query.trim() || !isAdmin) { setEmployeeResults([]); return; }
+    if (!query.trim() || !canSearchEmployees) { setEmployeeResults([]); return; }
     let cancelled = false;
     const timer = setTimeout(() => api.get<{ employees: Employee[] }>(`/employee/view?size=5&search=${encodeURIComponent(query.trim())}`).then((result) => { if (!cancelled) setEmployeeResults(result.employees || []); }).catch(() => { if (!cancelled) setEmployeeResults([]); }), 250);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [query, isAdmin]);
+  }, [query, canSearchEmployees]);
 
   const logout = () => {
     clearSession();
@@ -106,7 +109,7 @@ export default function AppShell({
           </div>
           <div>
             <strong>Be My Admin</strong>
-            <span>{isAdmin ? "Administration" : "People workspace"}</span>
+            <span>{user?.isPlatformAdmin ? "Super Admin" : user?.isCompanyOwner ? "Company workspace" : "People workspace"}</span>
           </div>
           <button
             className="icon-button mobile-only"
@@ -116,16 +119,18 @@ export default function AppShell({
           </button>
         </div>
 
+        <CompanySwitcher/>
         <nav className="nav-list">
           <p className="nav-label">
-            {isAdmin ? "Admin workspace" : "Workspace"}
+            {user?.isPlatformAdmin ? "Super Admin workspace" : user?.isCompanyOwner ? "Company management" : "Workspace"}
           </p>
+          {(user?.isCompanyOwner || user?.isPlatformAdmin) && <Link href={`${routePrefix}/settings/company`} className={pathname === `${routePrefix}/settings/company` ? "nav-item active" : "nav-item"}><Building2 size={18}/><span>Company settings</span></Link>}
           {navigation
             .filter(
               (item) =>
-                (item.href !== "/settings/profile" || isAdmin) &&
+
                 (item.href !== "/employees" ||
-                  isAdmin ||
+                  canSearchEmployees ||
                   user?.permissions?.some(
                     (permission) =>
                       permission === "*" || permission === "employee.read.all",
@@ -166,17 +171,15 @@ export default function AppShell({
               <strong>
                 {(employee || profile)
                   ? `${(employee || profile)?.firstName} ${(employee || profile)?.lastName}`
-                  : user?.loginId || "Loading..."}
+                  : user?.name || user?.loginId || "Loading..."}
               </strong>
               <span>
-                {isAdmin
-                  ? "Platform administrator"
-                  : (employee || profile)?.jobTitle || "Employee workspace"}
+                {user?.isPlatformAdmin ? "Super Admin" : user?.isCompanyOwner ? "Company admin" : (employee || profile)?.jobTitle || "Employee workspace"}
               </span>
             </div>
             <ChevronDown size={16} />
           </button>
-          {profileOpen && <div className="profile-menu"><span>{profile?.workEmail || user?.loginId}</span>{isAdmin && <Link href="/admin/settings/profile" onClick={() => setProfileOpen(false)}>Profile settings</Link>}<Link href={`${routePrefix}/settings/theme`} onClick={() => setProfileOpen(false)}>Appearance</Link><Link href={`${routePrefix}/settings/password`} onClick={() => setProfileOpen(false)}>Change password</Link><button type="button" onClick={logout}>Sign out</button></div>}
+          {profileOpen && <div className="profile-menu"><span>{profile?.workEmail || user?.loginId}</span>{<Link href={`${routePrefix}/settings/profile`} onClick={() => setProfileOpen(false)}>Profile settings</Link>}<Link href={`${routePrefix}/settings/theme`} onClick={() => setProfileOpen(false)}>Appearance</Link><Link href={`${routePrefix}/settings/password`} onClick={() => setProfileOpen(false)}>Change password</Link><button type="button" onClick={logout}>Sign out</button></div>}
           <button className="logout-button" onClick={logout}>
             <LogOut size={17} /> Sign out
           </button>
@@ -204,15 +207,15 @@ export default function AppShell({
             <Search size={17} />
             <input
               aria-label="Search"
-              placeholder={isAdmin ? "Search pages or employees..." : "Search pages..."}
+              placeholder={canSearchEmployees ? "Search pages or employees..." : "Search pages..."}
               value={query}
               onFocus={() => setSearchOpen(true)}
               onChange={(event) => { setQuery(event.target.value); setSearchOpen(true); }}
               onKeyDown={(event) => { if (event.key === "Escape") setSearchOpen(false); if (event.key === "Enter") { const match = navigation.find((item) => item.label.toLowerCase().includes(query.trim().toLowerCase())); if (match && query.trim()) { router.push(`${routePrefix}${match.href}`); setSearchOpen(false); } } }}
             />
             {searchOpen && query.trim() && <div className="search-results" role="listbox">
-              {navigation.filter((item) => item.label.toLowerCase().includes(query.trim().toLowerCase()) && (isAdmin || item.href !== "/employees")).map((item) => <button key={item.href} type="button" onClick={() => { router.push(`${routePrefix}${item.href}`); setSearchOpen(false); setQuery(""); }}>{item.label}<small>Page</small></button>)}
-              {employeeResults.map((item) => <button key={item.id} type="button" onClick={() => { router.push(`/admin/employees?search=${encodeURIComponent(item.employeeCode)}`); setSearchOpen(false); setQuery(""); }}>{item.firstName} {item.lastName}<small>{item.employeeCode}</small></button>)}
+              {navigation.filter((item) => item.label.toLowerCase().includes(query.trim().toLowerCase()) && (canSearchEmployees || item.href !== "/employees")).map((item) => <button key={item.href} type="button" onClick={() => { router.push(`${routePrefix}${item.href}`); setSearchOpen(false); setQuery(""); }}>{item.label}<small>Page</small></button>)}
+              {employeeResults.map((item) => <button key={item.id} type="button" onClick={() => { router.push(`${routePrefix}/employees?search=${encodeURIComponent(item.employeeCode)}`); setSearchOpen(false); setQuery(""); }}>{item.firstName} {item.lastName}<small>{item.employeeCode}</small></button>)}
               {!navigation.some((item) => item.label.toLowerCase().includes(query.trim().toLowerCase())) && !employeeResults.length && <span>No matches</span>}
             </div>}
           </div>
