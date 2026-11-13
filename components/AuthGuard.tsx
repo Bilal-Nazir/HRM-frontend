@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Building2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { ApiError } from "@/lib/api";
 import { verifySession } from "@/lib/verifySession";
@@ -68,7 +69,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   // Render no page components (or their effects) until this exact route is checked.
   if (!guarded || (gate.path === pathname && gate.status === "ready")) return children;
   return <main className="auth-gate" aria-busy={gate.status !== "error"}>
-    {gate.path === pathname && gate.status === "error" ? <div role="alert"><h1>Unable to verify your session</h1><p>Check your connection and try again.</p><button type="button" className="button button-primary" onClick={() => setRevision((value) => value + 1)}>Try again</button></div>
-      : <p role="status">Checking your session…</p>}
+    {gate.path === pathname && gate.status === "error" ? <div className="auth-gate-error" role="alert"><h1>Unable to verify your session</h1><p>Check your connection and try again.</p><button type="button" className="button button-primary" onClick={() => setRevision((value) => value + 1)}>Try again</button></div>
+      : <div className="auth-loader" role="status" aria-live="polite">
+        <div className="auth-loader-motion" aria-hidden="true">
+          <span className="auth-loader-orbit"/>
+          <span className="auth-loader-mark"><Building2 size={30} strokeWidth={1.7}/></span>
+        </div>
+        <strong className="auth-loader-brand">Be My Admin</strong>
+        <p className="auth-loader-caption">Getting your workspace ready<span className="auth-loader-dots" aria-hidden="true"><i/><i/><i/></span></p>
+        <span className="auth-loader-track" aria-hidden="true"/>
+      </div>}
   </main>;
 }
