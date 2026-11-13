@@ -103,6 +103,8 @@ export default function LoginForm({
             <div className="brand-mark brand-letter">B</div>
             <strong>Be My Admin</strong>
           </div>
+          <h2>Welcome back</h2>
+          <p>Sign in to continue.</p>
           {error && <ErrorBanner message={error} />}
           {passwordChanged && (
             <div className="success-banner" role="status">
