@@ -2,7 +2,6 @@
 
 import {
   ArrowRight,
-  Building2,
   Eye,
   EyeOff,
   LockKeyhole,
@@ -104,13 +103,6 @@ export default function LoginForm({
             <div className="brand-mark brand-letter">B</div>
             <strong>Be My Admin</strong>
           </div>
-          <span className="eyebrow">Welcome back</span>
-          <h2>Welcome back</h2>
-          <p>Sign in to continue.</p>
-          <div className="workspace-chip">
-            <Building2 size={14} />
-            <span>{adminMode ? "Super Admin only" : "Company admins & employees"}</span>
-          </div>
           {error && <ErrorBanner message={error} />}
           {passwordChanged && (
             <div className="success-banner" role="status">
@@ -118,7 +110,7 @@ export default function LoginForm({
             </div>
           )}
           <GoogleSignIn portal={adminMode ? "admin" : "employee"} onSuccess={signedIn} onError={setError}/>
-          <form onSubmit={submit}>
+          <form onSubmit={submit} aria-label="Sign in">
             <div className="field">
               <label>{adminMode ? "Super Admin ID or email" : "Employee ID or email"}</label>
               <div className="input-with-icon">
