@@ -1,6 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { taskReturnPath } from "@/lib/taskLinks";
+<<<<<<< HEAD
 import { dashboardHref, isAccountPath, loginHref, protectedPortal } from "@/lib/authRoutes";
+=======
+
+const employeePages = [
+  "/dashboard",
+  "/employees",
+  "/projects",
+  "/attendance",
+  "/leave",
+  "/chat",
+  "/announcements",
+  "/terms",
+  "/settings",
+];
+>>>>>>> prod
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -32,6 +47,7 @@ export const config = {
     "/projects/:path*",
     "/attendance/:path*",
     "/leave/:path*",
+    "/chat/:path*",
     "/announcements/:path*",
     "/terms/:path*",
     "/settings/:path*",

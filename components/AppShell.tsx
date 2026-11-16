@@ -21,6 +21,7 @@ import {
   CalendarRange,
   ListTodo,
   Plus,
+  MessageSquare,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -31,12 +32,16 @@ import { Employee, Project } from "@/types";
 import { useClientClock } from "@/lib/useClientClock";
 import CompanySwitcher from "@/components/CompanySwitcher";
 import NotificationCenter from "@/components/NotificationCenter";
+import ChatProvider from "@/components/ChatProvider";
+import ChatLauncher from "@/components/ChatLauncher";
+import Avatar from "@/components/Avatar";
 import { api } from "@/lib/api";
 
 const navigation = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/employees", label: "Employees", icon: Users },
   { href: "/projects", label: "Projects", icon: FolderKanban },
+  { href: "/chat", label: "Inbox", icon: MessageSquare },
   { href: "/attendance", label: "Attendance", icon: Clock3 },
   { href: "/leave", label: "Requests", icon: CalendarDays },
   { href: "/announcements", label: "Announcements", icon: Megaphone },
@@ -75,10 +80,17 @@ export default function AppShell({
     const session = getSession();
     if (!session) return;
     setUser(session);
+    api.get<{ user: SessionUser }>("/auth/profile").then(({ user }) => setUser(user)).catch(() => {});
     api.get<{ employee: Employee }>("/employee/me").then((result) => setProfile(result.employee)).catch(() => setProfile(null));
     api.get<{ projects: Project[] }>("/projects?size=50").then((result) => setProjects(result.projects || [])).catch(() => setProjects([]));
     try { setShortcuts(JSON.parse(localStorage.getItem(`hrm_shortcuts_${session.organizationId}_${session.userId}`) || "[]").slice(0, 3)); } catch { setShortcuts([]); }
   }, [isAdmin, router]);
+
+  useEffect(() => {
+    const updated = () => setUser(getSession());
+    window.addEventListener("hrm-profile-updated", updated);
+    return () => window.removeEventListener("hrm-profile-updated", updated);
+  }, []);
 
   const toggleShortcut = (shortcut: Shortcut) => {
     if (!user) return;
@@ -101,7 +113,7 @@ export default function AppShell({
   };
 
   return (
-    <div className={`app-shell ${isAdmin ? "admin-shell" : "employee-shell"}`}>
+    <ChatProvider scope={user?.organizationId ? `${user.organizationId}:${user.userId}` : ""}><div className={`app-shell ${isAdmin ? "admin-shell" : "employee-shell"}`}>
       <aside className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>
         <div className="brand-row">
           <div className="brand-mark">
@@ -128,7 +140,10 @@ export default function AppShell({
           {navigation
             .filter(
               (item) =>
+<<<<<<< HEAD
 
+=======
+>>>>>>> prod
                 (item.href !== "/employees" ||
                   canSearchEmployees ||
                   user?.permissions?.some(
@@ -162,11 +177,7 @@ export default function AppShell({
 
         <div className="sidebar-footer">
           <button className="profile-card profile-trigger" type="button" aria-expanded={profileOpen} onClick={() => setProfileOpen((value) => !value)}>
-            <div className="avatar">
-              {(employee || profile)
-                ? `${(employee || profile)?.firstName?.[0] || ""}${(employee || profile)?.lastName?.[0] || ""}`.toUpperCase()
-                : user?.loginId?.slice(0, 2).toUpperCase() || "HR"}
-            </div>
+            <Avatar userId={user?.userId} version={user?.photoVersion} name={(employee || profile) ? `${(employee || profile)?.firstName || ""} ${(employee || profile)?.lastName || ""}` : user?.name || user?.loginId || "HR"} />
             <div className="profile-copy">
               <strong>
                 {(employee || profile)
@@ -179,7 +190,11 @@ export default function AppShell({
             </div>
             <ChevronDown size={16} />
           </button>
+<<<<<<< HEAD
           {profileOpen && <div className="profile-menu"><span>{profile?.workEmail || user?.loginId}</span>{<Link href={`${routePrefix}/settings/profile`} onClick={() => setProfileOpen(false)}>Profile settings</Link>}<Link href={`${routePrefix}/settings/theme`} onClick={() => setProfileOpen(false)}>Appearance</Link><Link href={`${routePrefix}/settings/password`} onClick={() => setProfileOpen(false)}>Change password</Link><button type="button" onClick={logout}>Sign out</button></div>}
+=======
+          {profileOpen && <div className="profile-menu"><span>{profile?.workEmail || user?.loginId}</span><Link href={`${routePrefix}/settings/profile`} onClick={() => setProfileOpen(false)}>Profile settings</Link><Link href={`${routePrefix}/settings/theme`} onClick={() => setProfileOpen(false)}>Appearance</Link><Link href={`${routePrefix}/settings/password`} onClick={() => setProfileOpen(false)}>Change password</Link><button type="button" onClick={logout}>Sign out</button></div>}
+>>>>>>> prod
           <button className="logout-button" onClick={logout}>
             <LogOut size={17} /> Sign out
           </button>
@@ -229,9 +244,11 @@ export default function AppShell({
               : "—"}
           </div>
           {user && <NotificationCenter isAdmin={isAdmin} />}
+          {user?.organizationId && <ChatLauncher isAdmin={isAdmin} />}
+          {user && !user.organizationId && <Link className="chat-top-trigger" href={`${routePrefix}/chat`} aria-label="Open inbox"><MessageSquare size={20} /></Link>}
         </header>
         <div className="page-content">{children}</div>
       </main>
-    </div>
+    </div></ChatProvider>
   );
 }

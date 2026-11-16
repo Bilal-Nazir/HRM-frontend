@@ -10,8 +10,14 @@ import "./attendance-devices.css";
 import "./attendance-location-review.css";
 import "./task-duration.css";
 import "./rich-text.css";
+<<<<<<< HEAD
 import "./auth.css";
 import "./companies.css";
+=======
+import "./request-details.css";
+import "./chat.css";
+import "./profile-settings.css";
+>>>>>>> prod
 
 export const metadata: Metadata = {
   title: "Be My Admin",

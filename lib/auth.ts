@@ -12,6 +12,12 @@ export type SessionUser = {
   permissions: string[];
   // Portal identity; a company admin uses the employee/user portal.
   accountType: "admin" | "employee";
+  name?: string;
+  photoVersion?: string;
+  isPlatformAdmin?: boolean;
+  isCompanyOwner?: boolean;
+  companyName?: string;
+  companySlug?: string;
 };
 
 export const SESSION_CHANGED_EVENT = "hrm-session-changed";

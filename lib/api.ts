@@ -1,7 +1,11 @@
 import { clearSession, readAuthValue, updateAccessToken } from "@/lib/auth";
 import { resolveApiUrl } from "@/lib/apiUrl";
 
+<<<<<<< HEAD
 const API_URL = resolveApiUrl(process.env.NEXT_PUBLIC_API_URL, process.env.NODE_ENV === "production");
+=======
+const API_URL = (process.env.NEXT_PUBLIC_API_URL?.trim() || "https://3.126.250.133/api").replace(/\/+$/, "");
+>>>>>>> prod
 
 type ApiEnvelope<T> = {
   success: boolean;
@@ -82,7 +86,8 @@ export async function apiRequest<T>(
 
   const body = await response.json().catch(() => ({})) as Partial<ApiEnvelope<T>>;
   if (!response.ok) {
-    throw new ApiError(body.message || "Request failed", response.status, (body.data || {}) as Record<string, unknown>);
+    const missingRoute = response.status === 404 && !body.message;
+    throw new ApiError(body.message || (missingRoute ? "This API route is unavailable. Check that the frontend is connected to the updated backend." : `Request failed (${response.status})`), response.status, (body.data || {}) as Record<string, unknown>);
   }
   return body.data as T;
 }
@@ -93,9 +98,17 @@ export const api = {
     apiRequest<T>(path, { method: "POST", body: JSON.stringify(data || {}) }),
   patch: <T>(path: string, data?: unknown) =>
     apiRequest<T>(path, { method: "PATCH", body: JSON.stringify(data || {}) }),
+  put: <T>(path: string, data?: unknown) =>
+    apiRequest<T>(path, { method: "PUT", body: JSON.stringify(data || {}) }),
   delete: <T>(path: string, data?: unknown) => apiRequest<T>(path, { method: "DELETE", ...(data ? { body: JSON.stringify(data) } : {}) }),
   download: async (path: string) => {
+<<<<<<< HEAD
     const response = await authenticatedFetch(path, {}, true);
+=======
+    const request = () => { const token = localStorage.getItem("hrm_token"); return fetch(`${API_URL}${path}`, { cache: "no-store", headers: token ? { Authorization: `Bearer ${token}` } : {} }); };
+    let response = await request();
+    if (response.status === 401) { await apiRequest("/auth/session"); response = await request(); }
+>>>>>>> prod
     if (!response.ok) throw new ApiError("Could not download attachment", response.status);
     return response.blob();
   },

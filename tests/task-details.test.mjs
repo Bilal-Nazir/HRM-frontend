@@ -44,6 +44,15 @@ test("task return paths preserve the task and tab across portals and reject exte
   assert.equal(links.taskReturnPath(`${path}?activity=invalid`, false), path);
 });
 
+test("request and chat deep links survive login without accepting arbitrary return URLs", () => {
+  assert.equal(links.taskReturnPath(`/admin/leave/${taskId}`, false), `/leave/${taskId}`);
+  assert.equal(links.taskReturnPath(`/leave/${taskId}`, true), `/admin/leave/${taskId}`);
+  assert.equal(links.taskReturnPath(`/chat?conversation=${taskId}&mentions=1&redirect=https://example.com`, true), `/admin/chat?conversation=${taskId}&mentions=1`);
+  assert.equal(links.taskReturnPath(`/admin/chat?project=${projectId}`, false), `/chat?project=${projectId}`);
+  assert.equal(links.taskReturnPath(`/chat?conversation=invalid&new=1`, false), `/chat?new=1`);
+  for (const unsafe of ["//chat", "/chat/extra", "/leave/invalid", `/leave/${taskId}/extra`, "/chat#https://example.com"]) assert.equal(links.taskReturnPath(unsafe, false), null);
+});
+
 test("activity tabs isolate comments, field changes and work logs; All includes each once", () => {
   const render = (tab, admin = true) => renderToStaticMarkup(React.createElement(activity.default, { data, tab, admin, now: null }));
   const history = render("history"); assert.match(history, /Backlog/); assert.match(history, /In Progress/); assert.doesNotMatch(history, /Please review/);

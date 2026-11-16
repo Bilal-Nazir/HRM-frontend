@@ -19,6 +19,7 @@ import {
   FileUp,
   ListChecks,
   MoreHorizontal,
+  MessageSquare,
   Pencil,
   Plus,
   Search,
@@ -653,6 +654,7 @@ export default function ProjectWorkspace() {
             </div>
           </div>
           <div className="project-header-actions">
+            <Link className="button button-secondary" href={`${prefix}/chat?project=${project.id}`}><MessageSquare size={16} />Project chat</Link>
             {admin && (
               <button
                 className="button button-secondary"
