@@ -1,0 +1,146 @@
+.sidebar .brand-row,
+.sidebar .company-switcher {
+  flex-shrink: 0;
+}
+.sidebar .nav-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  scrollbar-width: thin;
+}
+.sidebar .sidebar-footer {
+  position: relative;
+  flex-shrink: 0;
+  margin-top: auto;
+  padding-top: 8px;
+}
+.sidebar-settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--sidebar-text, var(--muted));
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.sidebar-settings-toggle > span {
+  flex: 1;
+}
+.sidebar-settings-toggle > svg:last-child {
+  transition: transform 0.15s ease;
+}
+.sidebar-settings-toggle[aria-expanded="true"] > svg:last-child {
+  transform: rotate(180deg);
+}
+.sidebar-settings-toggle:hover,
+.sidebar-settings-toggle.active {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.sidebar-settings-options {
+  max-height: min(350px, 45dvh);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding: 5px 8px 9px;
+}
+.sidebar-settings-options a,
+.sidebar-settings-options > button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sidebar-text, var(--muted));
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+.sidebar-settings-options a:hover,
+.sidebar-settings-options a.active,
+.sidebar-settings-options > button:hover {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+.sidebar-settings-group {
+  display: block;
+  margin: 9px 10px 4px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.sidebar-quick-icons {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px 5px;
+}
+.sidebar-quick-icons .quick-icon {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--primary);
+  text-decoration: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.sidebar-quick-icons .quick-icon:hover {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.sidebar-quick-icons .quick-icon.empty {
+  color: var(--muted);
+  border-style: dashed;
+  background: transparent;
+}
+.sidebar-quick-icons .shortcut-picker {
+  bottom: 0;
+  max-height: min(440px, 80dvh);
+}
+.sidebar-footer .profile-menu {
+  position: absolute;
+  z-index: 85;
+  left: 0;
+  right: 0;
+  bottom: 105px;
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: 0 8px 30px #0002;
+}
+.sidebar-footer .profile-menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--ink);
+}
+@media (max-width: 760px) {
+  .sidebar-quick-icons .shortcut-picker {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    width: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-settings-toggle > svg:last-child {
+    transition: none;
+  }
+}

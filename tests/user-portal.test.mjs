@@ -51,22 +51,35 @@ test('the shared user dashboard, attendance, requests and announcements retain c
     currentUser = employee; assert.match(renderToStaticMarkup(React.createElement(Page)), /Personal workspace/, file);
   }
 });
-test('company admin navigation stays entirely on user-side URLs, while Super Admin uses /admin', () => {
-  for (const user of [owner, platform]) {
-    currentUser = user; let index = 0;
-    const hooks = { ...React, useState: (value) => [index++ === 0 ? user : typeof value === 'function' ? value() : value, () => {}], useEffect() {} };
-    const Shell = load('components/AppShell.tsx', {
-      react: hooks, 'next/link': { __esModule: true, default: Link },
-      'next/navigation': { usePathname: () => user.isPlatformAdmin ? '/admin/dashboard' : '/dashboard', useRouter: () => ({}) },
-      '@/lib/api': {}, '@/lib/useClientClock': { useClientClock: () => null },
-      '@/components/ChatProvider': { __esModule: true, default: ({ children }) => React.createElement(React.Fragment, null, children) },
-      '@/components/ChatLauncher': { __esModule: true, default: () => null },
-      '@/components/Avatar': { __esModule: true, default: ({ name }) => React.createElement('span', {}, name) },
-      '@/components/CompanySwitcher': { __esModule: true, default: () => null }, '@/components/NotificationCenter': { __esModule: true, default: () => null },
-    }).default;
-    const html = renderToStaticMarkup(React.createElement(Shell, null, 'Content'));
-    if (!user.isPlatformAdmin) { assert.match(html, /href="\/settings\/company"/); assert.match(html, /href="\/employees"/); assert.doesNotMatch(html, /href="\/admin\//); }
-    else { assert.match(html, /href="\/admin\/settings\/company"/); assert.match(html, /Super Admin workspace/); }
+test('settings group contains personal and company options on the correct portal with three compact shortcut slots', () => {
+  for (const user of [owner, platform, employee]) {
+    for (const open of [false, true]) {
+      currentUser = user; let index = 0;
+      const prefix = user.isPlatformAdmin ? '/admin' : '';
+      const hooks = { ...React, useState: (value) => [index++ === 0 ? user : typeof value === 'function' ? value() : value, () => {}], useEffect() {} };
+      const Shell = load('components/AppShell.tsx', {
+        react: hooks, 'next/link': { __esModule: true, default: Link },
+        'next/navigation': { usePathname: () => `${prefix}/${open ? 'settings/profile' : 'dashboard'}`, useRouter: () => ({}) },
+        '@/lib/api': {}, '@/lib/useClientClock': { useClientClock: () => null },
+        '@/components/ChatProvider': { __esModule: true, default: ({ children }) => React.createElement(React.Fragment, null, children) },
+        '@/components/ChatLauncher': { __esModule: true, default: () => null },
+        '@/components/Avatar': { __esModule: true, default: ({ name }) => React.createElement('span', {}, name) },
+        '@/components/CompanySwitcher': { __esModule: true, default: () => null }, '@/components/NotificationCenter': { __esModule: true, default: () => null },
+      }).default;
+      const html = renderToStaticMarkup(React.createElement(Shell, null, 'Content'));
+      assert.match(html, /aria-controls="sidebar-settings-options"/);
+      assert.equal((html.match(/aria-label="Add shortcut [123]"/g) || []).length, 3);
+      assert.doesNotMatch(html, /Choose up to 3 quick links|class="sidebar-shortcuts"/);
+      if (open) {
+        for (const path of ['/settings/profile', '/settings/password', '/settings/theme', '/terms']) assert.ok(html.includes(`href="${prefix}${path}"`), path);
+        assert.equal(html.includes(`href="${prefix}/settings/company"`), !!user.isCompanyOwner || !!user.isPlatformAdmin);
+      } else {
+        assert.doesNotMatch(html, /href="[^"]*\/settings\/|href="[^"]*\/terms"/);
+      }
+      if (!user.isPlatformAdmin) assert.doesNotMatch(html, /href="\/admin\//);
+      else assert.match(html, /Super Admin workspace/);
+      assert.equal(html.includes(`href="${prefix}/employees"`), user !== employee);
+    }
   }
 });
 test('project creation remains available to company admins on the user side', () => {
