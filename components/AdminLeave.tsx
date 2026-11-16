@@ -1,9 +1,9 @@
 "use client";
-import { useRef, useState } from "react";
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { LeaveRequest } from "@/types";
 import { useLiveData } from "@/lib/useLiveData";
-import { api } from "@/lib/api";
-import { errorMessage } from "@/lib/workspace";
 import { EmptyState, ErrorBanner, StatusPill } from "@/components/ui";
 
 function initials(name?: string) {
@@ -20,31 +20,12 @@ type LeaveOverview = {
 export default function AdminLeave() {
   const [status, setStatus] = useState("pending");
   const [page, setPage] = useState(1);
-  const [saving, setSaving] = useState(false);
-  const locked = useRef(false);
-  const [actionError, setActionError] = useState("");
-  const [success, setSuccess] = useState("");
+  const router = useRouter();
+  const prefix = usePathname().startsWith("/admin") ? "/admin" : "";
+  const href = (id: string) => `${prefix}/leave/${id}`;
   const { data, error, refresh } = useLiveData<LeaveOverview>(
     `/leave/requests/manage?size=20&page=${page}${status ? "&status=" + status : ""}`,
   );
-  const review = async (id: string, decision: "approved" | "rejected") => {
-    if (locked.current) return;
-    locked.current = true;
-    setSaving(true);
-    setActionError("");
-    setSuccess("");
-    try {
-      await api.patch(`/leave/requests/${id}/review`, { status: decision });
-      setSuccess(`Request ${decision}.`);
-      refresh();
-      window.dispatchEvent(new Event("focus"));
-    } catch (err) {
-      setActionError(errorMessage(err));
-    } finally {
-      locked.current = false;
-      setSaving(false);
-    }
-  };
   return (
     <section className="card">
       <div className="card-header">
@@ -74,12 +55,7 @@ export default function AdminLeave() {
           </button>
         </div>
       </div>
-      {(error || actionError) && <ErrorBanner message={actionError || error} />}
-      {success && (
-        <div className="success-banner" role="status">
-          {success}
-        </div>
-      )}
+      {error && <ErrorBanner message={error} />}
       {!data && !error && (
         <p className="panel-message">Loading leave requests…</p>
       )}
@@ -105,12 +81,12 @@ export default function AdminLeave() {
               </thead>
               <tbody>
                 {data.leaveRequests.map((item) => (
-                  <tr key={item.id} className={item.status === "pending" ? "row-pending" : undefined}>
+                  <tr key={item.id} className={`request-clickable-row ${item.status === "pending" ? "row-pending" : ""}`} tabIndex={0} onClick={() => router.push(href(item.id))} onKeyDown={event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); router.push(href(item.id)); } }}>
                     <td>
                       <div className="person-cell">
                         <div className="avatar">{initials(item.employee?.name)}</div>
                         <div>
-                          <strong>{item.employee?.name || "Employee unavailable"}</strong>
+                          <Link href={href(item.id)} onClick={event => event.stopPropagation()}><strong>{item.employee?.name || "Employee unavailable"}</strong></Link>
                           <span>{item.employee?.employeeCode}</span>
                         </div>
                       </div>
@@ -123,26 +99,7 @@ export default function AdminLeave() {
                     <td>{item.totalDays}</td>
                     <td><span>{item.reason || "—"}</span>{item.managerComment && <small style={{display:"block",marginTop:5,color:"var(--green-dark)"}}>Manager: {item.managerComment}</small>}</td>
                     <td>
-                      {item.status === "pending" ? (
-                        <div className="admin-table-actions">
-                          <button
-                            disabled={saving}
-                            className="button button-primary"
-                            onClick={() => review(item.id, "approved")}
-                          >
-                            Approve
-                          </button>
-                          <button
-                            disabled={saving}
-                            className="button button-secondary"
-                            onClick={() => review(item.id, "rejected")}
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      ) : (
-                        <StatusPill value={item.status} />
-                      )}
+                      <div className="admin-table-actions"><StatusPill value={item.status} /><Link className="button button-secondary" href={href(item.id)} onClick={event => event.stopPropagation()}>View details</Link></div>
                     </td>
                   </tr>
                 ))}

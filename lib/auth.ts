@@ -5,6 +5,12 @@ export type SessionUser = {
   loginId: string;
   permissions: string[];
   accountType: "admin" | "employee";
+  name?: string;
+  photoVersion?: string;
+  isPlatformAdmin?: boolean;
+  isCompanyOwner?: boolean;
+  companyName?: string;
+  companySlug?: string;
 };
 
 export const saveSession = (accessToken: string, refreshToken: string, user: SessionUser) => {

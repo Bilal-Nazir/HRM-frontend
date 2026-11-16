@@ -1,0 +1,137 @@
+.person-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.person-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.profile-settings-card {
+  max-width: 850px;
+  margin: 25px auto;
+}
+.profile-photo-settings {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 30px;
+}
+.profile-photo-preview {
+  width: 140px;
+  height: 140px;
+  border-radius: 24px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  background: var(--canvas);
+}
+.profile-photo-preview > img,
+.profile-photo-preview .avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0;
+  font-size: 36px;
+}
+.profile-photo-controls {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.profile-photo-controls > strong {
+  font-size: 20px;
+  color: var(--ink);
+}
+.profile-photo-controls p,
+.profile-photo-controls small,
+.profile-name-note {
+  color: var(--muted);
+  line-height: 1.6;
+}
+.profile-photo-controls small {
+  overflow-wrap: anywhere;
+}
+.profile-photo-actions {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin: 7px 0;
+}
+.profile-name-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding: 25px 30px;
+}
+.profile-name-form label {
+  grid-column: 1 / -1;
+  font-weight: 600;
+  font-size: 13px;
+}
+.profile-name-note {
+  padding: 20px 30px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+.chat-company-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  flex-wrap: wrap;
+}
+.chat-company-selector label {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 13px;
+}
+.chat-company-selector select {
+  min-width: 200px;
+  flex: 1;
+  max-width: 450px;
+}
+.chat-start-company {
+  padding: 35px;
+  max-width: 680px;
+  margin: 30px auto;
+  line-height: 1.8;
+}
+.chat-start-company p {
+  color: var(--muted);
+  margin: 12px 0;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (max-width: 650px) {
+  .profile-photo-settings {
+    flex-direction: column;
+    text-align: center;
+    padding: 24px 18px;
+  }
+  .profile-photo-actions {
+    justify-content: center;
+  }
+  .profile-name-form {
+    grid-template-columns: 1fr;
+    padding: 22px 18px;
+  }
+}

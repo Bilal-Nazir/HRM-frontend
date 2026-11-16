@@ -9,6 +9,9 @@ import "./attendance-devices.css";
 import "./attendance-location-review.css";
 import "./task-duration.css";
 import "./rich-text.css";
+import "./request-details.css";
+import "./chat.css";
+import "./profile-settings.css";
 
 export const metadata: Metadata = {
   title: "Be My Admin",

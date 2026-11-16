@@ -17,12 +17,25 @@ The shared AWS server and four Actions secrets are configured. See
 ## Setup
 
 1. Copy `.env.example` to `.env.local`.
-2. Set `NEXT_PUBLIC_API_URL` to the backend URL (default: `http://localhost:8080`).
+2. Set `NEXT_PUBLIC_API_URL` to the backend URL (default: `https://3.126.250.133/api`). Use `http://localhost:8080` only when explicitly testing a local backend.
 3. Run `npm install`.
 4. Run `npm run dev`.
 5. Open `http://localhost:3000`.
 
 The backend must be running and an organization must already be created through `POST /organization/bootstrap`.
+
+## Cloudflare frontend with AWS backend
+
+Set the Cloudflare build variable `NEXT_PUBLIC_API_URL=https://3.126.250.133/api`.
+This URL is public and contains no credentials. The API client also uses this AWS
+address if the variable is omitted; Docker's explicit `/api` setting remains supported.
+Rebuild the frontend when changing this build variable.
+
+Deploy the matching backend changes to AWS as well. The chat and profile screens
+require `/api/chat/*` and `/api/auth/profile*`; an older backend returns 404 even if
+the frontend deploy succeeds. Uploads and chat messages are sent directly to AWS,
+with existing bearer-token authentication. No local backend is needed for the
+deployed frontend.
 
 ## Included screens
 
