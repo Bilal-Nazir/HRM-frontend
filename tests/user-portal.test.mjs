@@ -73,6 +73,7 @@ test('settings group contains personal and company options on the correct portal
       if (open) {
         for (const path of ['/settings/profile', '/settings/password', '/settings/theme', '/terms']) assert.ok(html.includes(`href="${prefix}${path}"`), path);
         assert.equal(html.includes(`href="${prefix}/settings/company"`), !!user.isCompanyOwner || !!user.isPlatformAdmin);
+        assert.equal(html.includes(`href="${prefix}/settings/hiring"`), !!user.isCompanyOwner || !!user.isPlatformAdmin);
       } else {
         assert.doesNotMatch(html, /href="[^"]*\/settings\/|href="[^"]*\/terms"/);
       }

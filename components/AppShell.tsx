@@ -23,6 +23,7 @@ import {
   Plus,
   MessageSquare,
   Settings,
+  BriefcaseBusiness,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -94,6 +95,7 @@ export default function AppShell({
             label: "Company settings",
             icon: Building2,
           },
+          { href: "/settings/hiring", label: "Hiring", icon: BriefcaseBusiness },
         ]
       : []),
     { href: "/terms", label: "Company policies", icon: FileText },

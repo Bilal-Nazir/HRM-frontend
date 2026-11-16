@@ -16,6 +16,7 @@ import "./request-details.css";
 import "./chat.css";
 import "./profile-settings.css";
 import "./sidebar-settings.css";
+import "./hiring.css";
 
 export const metadata: Metadata = {
   title: "Be My Admin",

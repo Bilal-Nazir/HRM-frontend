@@ -1,0 +1,657 @@
+.hiring-management {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 24px;
+  align-items: flex-start;
+}
+.hiring-pages,
+.hiring-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 24px;
+  min-width: 0;
+}
+.hiring-pages {
+  padding: 18px 12px;
+}
+.hiring-pages h2 {
+  font-size: 15px;
+  padding: 0 10px 12px;
+  margin: 0;
+}
+.hiring-pages > p {
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 8px 10px;
+  color: var(--muted);
+}
+.hiring-page-item {
+  display: grid;
+  gap: 12px;
+  text-align: left;
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 14px 10px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.hiring-page-item:hover {
+  background: var(--canvas);
+}
+.hiring-page-item.active {
+  background: var(--primary-soft);
+  border-color: var(--line);
+}
+.hiring-page-item strong {
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.hiring-page-item > span {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.hiring-page-item small,
+.hiring-management h2 small {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.hiring-page-item .status-pill {
+  font-size: 11px;
+  padding: 3px 8px;
+}
+.hiring-workspace {
+  min-width: 0;
+}
+.hiring-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.hiring-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+.hiring-tabs button[aria-selected="true"] {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.hiring-tabs button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.hiring-panel h2 {
+  margin: 0;
+  font-size: 21px;
+}
+.hiring-panel h3 {
+  font-size: 15px;
+  margin: 24px 0 12px;
+}
+.hiring-applicant-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.hiring-applicant-toolbar > div {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+.hiring-filters {
+  display: flex;
+  gap: 12px;
+  margin: 20px 0;
+}
+.hiring-filters > select {
+  max-width: 220px;
+}
+.hiring-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0 12px;
+  color: var(--muted);
+}
+.hiring-search input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  padding: 12px 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink);
+}
+.hiring-management select,
+.hiring-management .field input,
+.hiring-management .field textarea {
+  width: 100%;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  font: inherit;
+}
+.hiring-management input[type="color"] {
+  padding: 5px;
+  height: 46px;
+  cursor: pointer;
+}
+.hiring-management textarea {
+  resize: vertical;
+}
+.hiring-applicant-list > button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  width: 100%;
+  padding: 20px 4px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+.hiring-applicant-list > button:hover {
+  background: var(--canvas);
+}
+.hiring-applicant-list > button > div {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+.hiring-applicant-list span,
+.hiring-applicant-list small {
+  color: var(--muted);
+  font-size: 13px;
+}
+.hiring-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.hiring-pagination button {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.hiring-pagination button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.hiring-page-form {
+  display: grid;
+  gap: 22px;
+}
+.hiring-page-form .field,
+.hiring-sharing .field,
+.hiring-review-form .field {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.hiring-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.hiring-questions {
+  border-top: 1px solid var(--line);
+  padding-top: 4px;
+}
+.hiring-questions p,
+.hiring-review-form > p,
+.hiring-muted {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.hiring-question {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.hiring-question .field {
+  flex: 1;
+  min-width: 0;
+}
+.hiring-question .hiring-consent {
+  flex-shrink: 0;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+.hiring-question > button {
+  border: 1px solid var(--line);
+  color: var(--muted);
+  background: var(--surface);
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.hiring-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.hiring-sharing {
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 24px;
+}
+.hiring-sharing .hiring-actions {
+  margin-top: 12px;
+  justify-content: flex-start;
+}
+.hiring-sharing p {
+  font-size: 13px;
+  color: var(--muted);
+}
+.hiring-success {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 16px;
+  background: var(--primary-soft);
+  color: var(--ink);
+  font-size: 14px;
+}
+.hiring-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+.hiring-review-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 24px;
+}
+.hiring-review-header p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.hiring-contact {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.hiring-cv-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 24px 0;
+}
+.hiring-cv-row > div {
+  flex: 1;
+  min-width: 100px;
+  display: grid;
+  gap: 6px;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+.hiring-cv-row small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.hiring-cv-preview {
+  display: grid;
+  gap: 12px;
+}
+.hiring-cv-preview iframe {
+  width: 100%;
+  height: 650px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.hiring-prewrap {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.8;
+}
+.hiring-review-form {
+  display: grid;
+  gap: 16px;
+  border-top: 1px solid var(--line);
+  margin-top: 24px;
+}
+.hiring-review-form > button {
+  justify-self: start;
+}
+.hiring-review-form h3,
+.hiring-review-form > p {
+  margin-bottom: 0;
+}
+.hiring-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.hiring-consent input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  margin: 3px 0 0;
+  flex-shrink: 0;
+}
+.hiring-job {
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.hiring-job > header {
+  padding: 38px;
+  border-top: 5px solid var(--hiring-accent);
+  background: var(--surface);
+}
+.hiring-company {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--ink);
+}
+.hiring-job header > p:first-of-type {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  margin-top: 36px;
+}
+.hiring-job h1 {
+  font-size: clamp(26px, 3vw, 42px);
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin: 14px 0 22px;
+  overflow-wrap: anywhere;
+}
+.hiring-job-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 22px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.hiring-job-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.hiring-job .hiring-intro {
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--muted);
+  margin: 24px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.hiring-job-description {
+  padding: 30px 38px 38px;
+  border-top: 1px solid var(--line);
+}
+.hiring-job-description h2 {
+  font-size: 18px;
+  margin: 0 0 22px;
+}
+.hiring-job .rich-text-content {
+  font-size: 15px;
+  line-height: 1.85;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.careers-public {
+  color-scheme: light;
+  --surface: #fff;
+  --canvas: #f6f8f9;
+  --line: #e0e5e7;
+  --ink: #1d2939;
+  --muted: #667085;
+  min-height: 100vh;
+  padding: 52px 24px 24px;
+  background: var(--canvas);
+  color: var(--ink);
+}
+.careers-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.8fr);
+  gap: 28px;
+  max-width: 1160px;
+  margin: 0 auto;
+  align-items: flex-start;
+}
+.hiring-application-form {
+  padding: 30px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.hiring-application-form h2 {
+  font-size: 23px;
+  line-height: 1.3;
+  margin: 0;
+}
+.hiring-application-form form {
+  display: grid;
+  gap: 22px;
+}
+.hiring-application-form p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.hiring-application-form .field {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.hiring-application-form .field > input,
+.hiring-application-form textarea {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 11px;
+  margin-top: 8px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 400;
+  box-shadow: none;
+}
+.hiring-application-form textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+.hiring-application-form small {
+  font-size: 12px;
+  line-height: 1.7;
+  font-weight: 400;
+  color: var(--muted);
+}
+.hiring-cv-upload {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  padding: 18px 14px;
+  margin-top: 8px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.hiring-cv-upload small {
+  display: block;
+  margin-top: 4px;
+}
+.hiring-cv-upload input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  cursor: pointer;
+}
+.hiring-cv-upload:focus-within {
+  outline: 2px solid var(--hiring-accent);
+  outline-offset: 3px;
+}
+.hiring-submit {
+  padding: 13px;
+  background: #1d2939;
+  border: 1px solid #1d2939;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 9px;
+  cursor: pointer;
+}
+.hiring-submit:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.hiring-honeypot {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.hiring-receipt {
+  display: grid;
+  justify-items: start;
+  gap: 18px;
+  padding: 12px 0;
+}
+.hiring-receipt > svg {
+  color: #0d806b;
+}
+.hiring-public-state {
+  padding: 80px 24px;
+  max-width: 600px;
+  margin: auto;
+  text-align: center;
+  line-height: 1.7;
+}
+.hiring-public-state h1 {
+  font-size: 25px;
+}
+.careers-footer {
+  max-width: 1160px;
+  margin: 30px auto 0;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+@media (max-width: 1100px) {
+  .hiring-management {
+    grid-template-columns: 210px minmax(0, 1fr);
+    gap: 16px;
+  }
+  .hiring-panel {
+    padding: 20px;
+  }
+  .hiring-question {
+    flex-wrap: wrap;
+  }
+  .hiring-question .field {
+    flex-basis: 100%;
+  }
+}
+@media (max-width: 780px) {
+  .hiring-management,
+  .careers-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hiring-pages {
+    display: flex;
+    overflow-x: auto;
+    gap: 8px;
+    padding: 12px;
+  }
+  .hiring-pages > h2 {
+    display: none;
+  }
+  .hiring-page-item {
+    min-width: 200px;
+    max-width: 250px;
+  }
+  .hiring-panel {
+    padding: 18px;
+  }
+  .careers-public {
+    padding: 20px 12px;
+  }
+  .hiring-job > header {
+    padding: 28px 22px;
+  }
+  .hiring-job-description {
+    padding: 24px 22px;
+  }
+  .hiring-application-form {
+    padding: 24px 22px;
+  }
+  .hiring-filters {
+    flex-wrap: wrap;
+  }
+  .hiring-search {
+    flex-basis: 100%;
+  }
+  .hiring-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hiring-cv-preview iframe {
+    height: 480px;
+  }
+}
