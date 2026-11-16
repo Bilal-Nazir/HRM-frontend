@@ -8,13 +8,15 @@ import {
   StatusPill,
 } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
-import { getSession } from "@/lib/auth";
 import { errorMessage } from "@/lib/workspace";
 import { LeaveRequest, LeaveType } from "@/types";
 import { MessageSquare, Plus, X } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function LeavePage() {
+  const router = useRouter();
   const [types, setTypes] = useState<LeaveType[]>([]);
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [pending, setPending] = useState<LeaveRequest[]>([]);
@@ -42,9 +44,7 @@ export default function LeavePage() {
       api.get<{ leaveRequests: LeaveRequest[] }>(
         "/leave/requests/history?size=100",
       ),
-      getSession()?.permissions.some((p) => p === "*" || p === "leave.approve")
-        ? api.get<{ leaveRequests: LeaveRequest[] }>("/leave/requests/pending")
-        : Promise.resolve({ leaveRequests: [] as LeaveRequest[] }),
+      api.get<{ leaveRequests: LeaveRequest[] }>("/leave/requests/pending"),
       api.get<{ leaveBalances: typeof balances }>("/leave/balances"),
     ]);
     if (results[0].status === "fulfilled")
@@ -90,19 +90,6 @@ export default function LeavePage() {
     }
   };
 
-  const addManagerRemark = async (id: string) => {
-    const comment = window.prompt("Add a remark for HR/Admin (you cannot approve or reject this request):");
-    if (!comment?.trim()) return;
-    try {
-      await api.patch(`/leave/requests/${id}/manager-comment`, { comment });
-      await load();
-    } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Could not add manager remark",
-      );
-    }
-  };
-
   const typeName = (id: string) =>
     types.find((type) => type.id === id)?.name || "Leave";
   const requestName = (item: LeaveRequest) => item.requestKind === "work_from_home" ? "Work from Home" : item.leaveTypeName || typeName(item.leaveTypeId || "");
@@ -137,8 +124,8 @@ export default function LeavePage() {
         <section className="card" style={{ marginBottom: 20 }}>
           <div className="card-header">
             <div>
-              <h2>Direct-report requests</h2>
-              <p>Add remarks for HR/Admin. Final approval remains with HR/Admin.</p>
+              <h2>Team requests</h2>
+              <p>Discuss requests with your team. Final decisions are made by an admin.</p>
             </div>
             <span className="status-pill status-pending">
               {pending.length} pending
@@ -157,7 +144,7 @@ export default function LeavePage() {
               </thead>
               <tbody>
                 {pending.map((item) => (
-                  <tr key={item.id}>
+                  <tr key={item.id} className="request-clickable-row" tabIndex={0} onClick={() => router.push(`/leave/${item.id}`)} onKeyDown={event => { if (event.target === event.currentTarget && event.key === "Enter") router.push(`/leave/${item.id}`); }}>
                     <td>
                       <div className="person-cell">
                         <div className="avatar">{(item.employee?.name || "").trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "--"}</div>
@@ -175,7 +162,7 @@ export default function LeavePage() {
                     <td>{item.totalDays}</td>
                     <td>
                       <div style={{ display: "flex", gap: 7 }}>
-                        <button className="button button-secondary" onClick={() => addManagerRemark(item.id)}><MessageSquare size={15} />{item.managerComment ? "Update remark" : "Add remark"}</button>
+                        <Link className="button button-secondary" href={`/leave/${item.id}`} onClick={event => event.stopPropagation()}><MessageSquare size={15} />View & comment</Link>
                       </div>
                     </td>
                   </tr>
@@ -213,9 +200,9 @@ export default function LeavePage() {
               </thead>
               <tbody>
                 {requests.map((item) => (
-                  <tr key={item.id}>
+                  <tr key={item.id} className="request-clickable-row" tabIndex={0} onClick={() => router.push(`/leave/${item.id}`)} onKeyDown={event => { if (event.target === event.currentTarget && event.key === "Enter") router.push(`/leave/${item.id}`); }}>
                     <td>
-                      <strong>{requestName(item)}</strong>
+                      <Link className="request-row-link" href={`/leave/${item.id}`} onClick={event => event.stopPropagation()}>{requestName(item)}</Link>
                     </td>
                     <td>{new Date(item.startDate).toLocaleDateString()}</td>
                     <td>{new Date(item.endDate).toLocaleDateString()}</td>

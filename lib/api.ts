@@ -1,11 +1,7 @@
 import { clearSession, readAuthValue, updateAccessToken } from "@/lib/auth";
 import { resolveApiUrl } from "@/lib/apiUrl";
 
-<<<<<<< HEAD
 const API_URL = resolveApiUrl(process.env.NEXT_PUBLIC_API_URL, process.env.NODE_ENV === "production");
-=======
-const API_URL = (process.env.NEXT_PUBLIC_API_URL?.trim() || "https://3.126.250.133/api").replace(/\/+$/, "");
->>>>>>> prod
 
 type ApiEnvelope<T> = {
   success: boolean;
@@ -102,13 +98,7 @@ export const api = {
     apiRequest<T>(path, { method: "PUT", body: JSON.stringify(data || {}) }),
   delete: <T>(path: string, data?: unknown) => apiRequest<T>(path, { method: "DELETE", ...(data ? { body: JSON.stringify(data) } : {}) }),
   download: async (path: string) => {
-<<<<<<< HEAD
-    const response = await authenticatedFetch(path, {}, true);
-=======
-    const request = () => { const token = localStorage.getItem("hrm_token"); return fetch(`${API_URL}${path}`, { cache: "no-store", headers: token ? { Authorization: `Bearer ${token}` } : {} }); };
-    let response = await request();
-    if (response.status === 401) { await apiRequest("/auth/session"); response = await request(); }
->>>>>>> prod
+    const response = await authenticatedFetch(path, { cache: "no-store" }, true);
     if (!response.ok) throw new ApiError("Could not download attachment", response.status);
     return response.blob();
   },

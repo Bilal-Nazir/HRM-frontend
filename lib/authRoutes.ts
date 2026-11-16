@@ -1,7 +1,7 @@
 import { taskReturnPath } from "@/lib/taskLinks";
 
 export type Portal = "admin" | "employee";
-const employeePages = ["/dashboard", "/employees", "/projects", "/attendance", "/leave", "/announcements", "/terms", "/settings"];
+const employeePages = ["/dashboard", "/employees", "/projects", "/chat", "/attendance", "/leave", "/announcements", "/terms", "/settings"];
 
 export const dashboardHref = (portal: Portal) => portal === "admin" ? "/admin/dashboard" : "/dashboard";
 export const isAccountPath = (path: string) => ["/companies", "/join"].includes(path);

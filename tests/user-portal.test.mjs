@@ -59,6 +59,9 @@ test('company admin navigation stays entirely on user-side URLs, while Super Adm
       react: hooks, 'next/link': { __esModule: true, default: Link },
       'next/navigation': { usePathname: () => user.isPlatformAdmin ? '/admin/dashboard' : '/dashboard', useRouter: () => ({}) },
       '@/lib/api': {}, '@/lib/useClientClock': { useClientClock: () => null },
+      '@/components/ChatProvider': { __esModule: true, default: ({ children }) => React.createElement(React.Fragment, null, children) },
+      '@/components/ChatLauncher': { __esModule: true, default: () => null },
+      '@/components/Avatar': { __esModule: true, default: ({ name }) => React.createElement('span', {}, name) },
       '@/components/CompanySwitcher': { __esModule: true, default: () => null }, '@/components/NotificationCenter': { __esModule: true, default: () => null },
     }).default;
     const html = renderToStaticMarkup(React.createElement(Shell, null, 'Content'));

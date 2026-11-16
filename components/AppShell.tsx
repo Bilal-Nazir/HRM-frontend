@@ -140,10 +140,7 @@ export default function AppShell({
           {navigation
             .filter(
               (item) =>
-<<<<<<< HEAD
 
-=======
->>>>>>> prod
                 (item.href !== "/employees" ||
                   canSearchEmployees ||
                   user?.permissions?.some(
@@ -190,11 +187,7 @@ export default function AppShell({
             </div>
             <ChevronDown size={16} />
           </button>
-<<<<<<< HEAD
           {profileOpen && <div className="profile-menu"><span>{profile?.workEmail || user?.loginId}</span>{<Link href={`${routePrefix}/settings/profile`} onClick={() => setProfileOpen(false)}>Profile settings</Link>}<Link href={`${routePrefix}/settings/theme`} onClick={() => setProfileOpen(false)}>Appearance</Link><Link href={`${routePrefix}/settings/password`} onClick={() => setProfileOpen(false)}>Change password</Link><button type="button" onClick={logout}>Sign out</button></div>}
-=======
-          {profileOpen && <div className="profile-menu"><span>{profile?.workEmail || user?.loginId}</span><Link href={`${routePrefix}/settings/profile`} onClick={() => setProfileOpen(false)}>Profile settings</Link><Link href={`${routePrefix}/settings/theme`} onClick={() => setProfileOpen(false)}>Appearance</Link><Link href={`${routePrefix}/settings/password`} onClick={() => setProfileOpen(false)}>Change password</Link><button type="button" onClick={logout}>Sign out</button></div>}
->>>>>>> prod
           <button className="logout-button" onClick={logout}>
             <LogOut size={17} /> Sign out
           </button>
