@@ -3,24 +3,19 @@
 import { useEffect, useRef, useState } from "react";
 import CheckoutConfirmation from "@/components/CheckoutConfirmation";
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  CalendarCheck2,
-  Clock3,
-  Palmtree,
-  LogIn,
-  LogOut,
-} from "lucide-react";
 import AnnouncementsPanel from "@/components/AnnouncementsPanel";
 import { captureAttendanceLocation, errorMessage } from "@/lib/workspace";
 import AppShell from "@/components/AppShell";
-import { EmptyState, ErrorBanner, StatCard, StatusPill } from "@/components/ui";
+import { EmptyState, ErrorBanner, StatusPill } from "@/components/ui";
 import { api } from "@/lib/api";
 import { captureAttendanceDevice } from "@/lib/attendanceDevice";
 import { Attendance, Employee } from "@/types";
 import { AttendanceInsights, AttendanceSummary, AttendanceLocation } from "@/components/AttendanceInsights";
 import DashboardEngagement from "@/components/DashboardEngagement";
 import AttendanceLocationReview from "@/components/AttendanceLocationReview";
+import DailyWorkspace from "@/components/DailyWorkspace";
+import DashboardQuote from "@/components/DashboardQuote";
+import { attendanceClock } from "@/lib/attendanceClock";
 
 function sessionDuration(session: Attendance | undefined, now: Date | null) {
   if (!session || !now) return "—";
@@ -153,31 +148,32 @@ export default function EmployeeDashboard() {
         />
       )}
       <div className="employee-dashboard" aria-busy={loading}>
-        <header className="employee-welcome">
+        <header className="employee-welcome employee-welcome-compact">
           <div className="employee-welcome-copy">
-            <span className="eyebrow">Your workspace</span>
+            <div className="employee-welcome-topline">
+              <span className={`employee-status-chip ${open ? "is-live" : ""}`}><i />{sessionState}</span>
+              <DashboardEngagement audience="employee" compact />
+            </div>
             <h1>
               {employee?.firstName
                 ? `${now ? (now.getHours() < 12 ? "Good morning" : now.getHours() < 17 ? "Good afternoon" : "Good evening") : "Welcome back"}, ${employee.firstName}`
                 : "Welcome back"}
               <span className="greeting-dot">.</span>
             </h1>
-            <p>Your time, your leave, your day. All in one place.</p>
-            <span className={`employee-status-chip ${open ? "is-live" : ""}`}>
-              <i />
-              {sessionState}
-            </span>
+            <DashboardQuote compact />
           </div>
-          <div className="employee-welcome-clock">
-            <span className="employee-welcome-clock-label">Local time</span>
-            <strong aria-label="Current local time">{now ? now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true }) : "—"}</strong>
+          <div className="employee-welcome-session">
+            <div className="employee-session-clock">
+              <span className="employee-session-label">{open ? "Current session" : "No active session"}</span>
+              <strong role="timer" aria-live="off" aria-label="Current attendance session duration">{loading || attendance === null ? "—" : attendanceClock(open?.checkInAt, now)}</strong>
+              <span className="employee-session-units">Hours : Minutes : Seconds</span>
+            </div>
             <button
               type="button"
               className="button button-primary dashboard-check-button"
               onClick={() => void recordAttendance()}
               disabled={loading || attendance === null || actionLoading}
             >
-              {open ? <LogOut size={17} /> : <LogIn size={17} />}
               {actionLoading
                 ? "Getting location…"
                 : open
@@ -186,8 +182,6 @@ export default function EmployeeDashboard() {
             </button>
           </div>
         </header>
-
-        <DashboardEngagement audience="employee" />
 
         {actionError && (
           <div role="alert">
@@ -199,8 +193,6 @@ export default function EmployeeDashboard() {
             {actionSuccess}
           </div>
         )}
-
-        <AttendanceLocationReview assistance={!!actionError} action={open ? "check_out" : "check_in"} onRecorded={() => { setReload((value) => value + 1); setActionError(""); setActionSuccess("Admin confirmed your location and recorded attendance."); }}/>
 
         {errors.length > 0 && (
           <div className="employee-load-error">
@@ -217,52 +209,22 @@ export default function EmployeeDashboard() {
           </div>
         )}
 
-        <section
-          className="stats-grid employee-stats"
-          aria-label="Your activity summary"
-        >
-          <StatCard
-            label="Attendance"
-            value={sessionState}
-            note={
-              session
-                ? `Latest session · ${session.workDate}`
-                : "Start from the attendance page"
-            }
-            icon={<CalendarCheck2 size={20} />}
-          />
-          <StatCard
-            label={open ? "Current session" : "Last session"}
-            value={sessionDuration(session, now)}
-            note={
-              open
-                ? "Time since your check-in"
-                : "Your most recent work session"
-            }
-            icon={<Clock3 size={20} />}
-          />
-          <StatCard
-            label="Leave awaiting approval"
-            value={loading || pendingCount === null ? "—" : pendingCount}
-            note="Your pending leave requests"
-            icon={<Palmtree size={20} />}
-          />
-          <StatCard label="Working days" value={summary?.totalWorkingDays ?? "—"} note={`${summary?.totalWorkedHours.toFixed(1) ?? "—"} hours recorded this year`} icon={<CalendarCheck2 size={20} />} />
-        </section>
+        <DailyWorkspace now={now} />
 
-        <AnnouncementsPanel />
-        <AttendanceInsights summary={summary} />
+        <section className="daily-attendance-strip" aria-label="Attendance and requests">
+          <Link href="/attendance"><div><span>{open ? "Current attendance session" : "Last attendance session"}</span><strong>{sessionDuration(session, now)}</strong></div><small>{sessionState}</small></Link>
+          <Link href="/leave"><div><span>Requests awaiting approval</span><strong>{loading || pendingCount === null ? "—" : pendingCount}</strong></div><small>View requests</small></Link>
+        </section>
+        <AnnouncementsPanel unreadOnly />
         <section className="dashboard-grid employee-overview">
           <div className="card employee-history">
             <div className="card-header">
               <div>
-                <span className="section-kicker">Your activity</span>
                 <h2>Recent attendance</h2>
                 <p>Your last five work sessions</p>
               </div>
               <Link href="/attendance" className="button button-secondary">
                 View history
-                <ArrowUpRight size={15} />
               </Link>
             </div>
             {loading ? (
@@ -327,6 +289,10 @@ export default function EmployeeDashboard() {
             )}
           </div>
         </section>
+        <details className="card daily-year-summary"><summary>Attendance trends and yearly summary</summary><AttendanceInsights summary={summary} /></details>
+        <div className="daily-location-support">
+        <AttendanceLocationReview assistance={!!actionError} action={open ? "check_out" : "check_in"} onRecorded={() => { setReload((value) => value + 1); setActionError(""); setActionSuccess("Admin confirmed your location and recorded attendance."); }}/>
+        </div>
       </div>
     </AppShell>
   );

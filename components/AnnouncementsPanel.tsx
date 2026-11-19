@@ -2,19 +2,21 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Megaphone, ArrowUpRight } from "lucide-react";
+import { Megaphone } from "lucide-react";
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/workspace";
 import { AnnouncementList } from "@/types/workspace";
-import { portalPrefix, hasPermission } from "@/lib/access";
+import { portalPrefix } from "@/lib/access";
 import { getSession } from "@/lib/auth";
 
 export default function AnnouncementsPanel({
   admin = false,
   compact = true,
+  unreadOnly = false,
 }: {
   admin?: boolean;
   compact?: boolean;
+  unreadOnly?: boolean;
 }) {
   const [data, setData] = useState<AnnouncementList | null>(null);
   const [error, setError] = useState("");
@@ -22,18 +24,88 @@ export default function AnnouncementsPanel({
   const [retry, setRetry] = useState(0);
   const [loading, setLoading] = useState(true);
   const [readKeys, setReadKeys] = useState<string[]>([]);
-  useEffect(() => { const key = `hrm_read_announcements_${getSession()?.userId || "guest"}`; try { setReadKeys(JSON.parse(localStorage.getItem(key) || "[]")); } catch { setReadKeys([]); } }, []);
-  useEffect(() => { const timer = setInterval(() => setRetry((value) => value + 1), 30000); return () => clearInterval(timer); }, []);
-  const markRead = (key: string) => { const next = [...new Set([...readKeys, key])]; setReadKeys(next); localStorage.setItem(`hrm_read_announcements_${getSession()?.userId || "guest"}`, JSON.stringify(next)); };
-  const unread = data?.announcements.filter((item) => !readKeys.includes(`${item.id}:${item.updatedAt}`)).length || 0;
+  const [readsReady, setReadsReady] = useState(false);
   useEffect(() => {
+    const key = `hrm_read_announcements_${getSession()?.userId || "guest"}`;
+    const sync = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(key) || "[]");
+        setReadKeys(
+          Array.isArray(saved)
+            ? saved.filter((item): item is string => typeof item === "string")
+            : [],
+        );
+      } catch {
+        setReadKeys([]);
+      }
+      setReadsReady(true);
+    };
+    const changed = (event: StorageEvent) => {
+      if (event.key === key || event.key === null) sync();
+    };
+    sync();
+    window.addEventListener("storage", changed);
+    return () => window.removeEventListener("storage", changed);
+  }, []);
+  useEffect(() => {
+    const timer = setInterval(() => setRetry((value) => value + 1), 30000);
+    return () => clearInterval(timer);
+  }, []);
+  const markRead = (key: string) => {
+    const next = [...new Set([...readKeys, key])];
+    setReadKeys(next);
+    try {
+      localStorage.setItem(
+        `hrm_read_announcements_${getSession()?.userId || "guest"}`,
+        JSON.stringify(next),
+      );
+    } catch {
+      /* Keep the dismissal for this visit when storage is unavailable. */
+    }
+  };
+  const onlyUnread = unreadOnly && !admin;
+  const visibleItems =
+    data?.announcements.filter(
+      (item) =>
+        !onlyUnread || !readKeys.includes(`${item.id}:${item.updatedAt}`),
+    ) || [];
+  const unread =
+    data?.announcements.filter(
+      (item) => !readKeys.includes(`${item.id}:${item.updatedAt}`),
+    ).length || 0;
+  const readVersion = onlyUnread ? JSON.stringify(readKeys) : "";
+  useEffect(() => {
+    if (onlyUnread && !readsReady) return;
     let cancelled = false;
-    setLoading(true);
     setError("");
-    api
-      .get<AnnouncementList>(
-        `/announcements?page=${page}&size=${compact ? 3 : 10}`,
-      )
+    // Backfill the preview with older unread posts instead of letting read posts
+    // on page one hide announcements further down the feed.
+    const load = async () => {
+      let result = await api.get<AnnouncementList>(
+        `/announcements?page=${onlyUnread ? 1 : page}&size=${onlyUnread ? 50 : compact ? 3 : 10}`,
+      );
+      if (!onlyUnread) return result;
+      let items = result.announcements.filter(
+        (item) => !readKeys.includes(`${item.id}:${item.updatedAt}`),
+      );
+      for (
+        let nextPage = 2;
+        !cancelled && items.length < 3 && nextPage <= result.lastPage;
+        nextPage++
+      ) {
+        const next = await api.get<AnnouncementList>(
+          `/announcements?page=${nextPage}&size=50`,
+        );
+        items = [
+          ...items,
+          ...next.announcements.filter(
+            (item) => !readKeys.includes(`${item.id}:${item.updatedAt}`),
+          ),
+        ];
+      }
+      return { ...result, announcements: items.slice(0, 3) };
+    };
+    load()
       .then((result) => {
         if (!cancelled) setData(result);
       })
@@ -46,17 +118,37 @@ export default function AnnouncementsPanel({
     return () => {
       cancelled = true;
     };
-  }, [page, retry, compact]);
+  }, [page, retry, compact, onlyUnread, readsReady, readVersion]);
+  if (
+    onlyUnread &&
+    readsReady &&
+    data &&
+    !loading &&
+    !error &&
+    visibleItems.length === 0
+  )
+    return null;
   return (
     <section className="card announcements-panel" aria-busy={loading}>
       <div className="card-header">
         <div className="announcement-heading">
-          <span className="announcement-icon">
-            <Megaphone size={21} />
-          </span>
+          {!compact && (
+            <span className="announcement-icon">
+              <Megaphone size={21} />
+            </span>
+          )}
           <div>
-            <span className="section-kicker">From your admin</span>
-            <h2>Announcements {!admin && unread > 0 && <span className="announcement-new-count" aria-label={`${unread} new announcements`}>{unread} new</span>}</h2>
+            <h2>
+              Announcements{" "}
+              {!admin && unread > 0 && (
+                <span
+                  className="announcement-new-count"
+                  aria-label={`${unread} new announcements`}
+                >
+                  {unread} new
+                </span>
+              )}
+            </h2>
           </div>
         </div>
         {compact && (
@@ -65,7 +157,6 @@ export default function AnnouncementsPanel({
             href={`${portalPrefix(getSession())}/announcements`}
           >
             {admin ? "Manage" : "View all"}
-            <ArrowUpRight size={15} />
           </Link>
         )}
       </div>
@@ -82,7 +173,7 @@ export default function AnnouncementsPanel({
               Retry
             </button>
           </div>
-        ) : !data?.announcements.length ? (
+        ) : !visibleItems.length ? (
           <div className="announcement-empty">
             <strong>You're all caught up.</strong>
             <p>
@@ -92,8 +183,11 @@ export default function AnnouncementsPanel({
             </p>
           </div>
         ) : (
-          data.announcements.map((item) => (
-            <article className={`announcement-item ${!admin && !readKeys.includes(`${item.id}:${item.updatedAt}`) ? "announcement-unread" : ""}`} key={item.id}>
+          visibleItems.map((item) => (
+            <article
+              className={`announcement-item ${!admin && !readKeys.includes(`${item.id}:${item.updatedAt}`) ? "announcement-unread" : ""}`}
+              key={item.id}
+            >
               <div className="announcement-title">
                 <h3>{item.title}</h3>
                 <time dateTime={item.createdAt}>
@@ -112,7 +206,15 @@ export default function AnnouncementsPanel({
                   item.content
                 )}
               </div>
-              {!admin && !readKeys.includes(`${item.id}:${item.updatedAt}`) && <button type="button" className="announcement-read-button" onClick={() => markRead(`${item.id}:${item.updatedAt}`)}>Mark as read</button>}
+              {!admin && !readKeys.includes(`${item.id}:${item.updatedAt}`) && (
+                <button
+                  type="button"
+                  className="announcement-read-button"
+                  onClick={() => markRead(`${item.id}:${item.updatedAt}`)}
+                >
+                  Mark as read
+                </button>
+              )}
             </article>
           ))
         )}
@@ -140,7 +242,7 @@ export default function AnnouncementsPanel({
       )}
       <div className="announcement-footer">
         <Link href={`${portalPrefix(getSession())}/terms`}>
-          Company Policies <ArrowUpRight size={14} />
+          Company Policies
         </Link>
       </div>
     </section>

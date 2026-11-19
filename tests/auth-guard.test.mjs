@@ -179,7 +179,8 @@ test("a failed login, temporary refresh failure or stale refresh cannot clear a 
 test("backend configuration supports independent hosts and normalizes URL prefixes", () => {
   const { resolveApiUrl, productionApiUrl } = load("lib/apiUrl.ts");
   assert.equal(resolveApiUrl(undefined, true), "https://3.126.250.133/api");
-  assert.equal(resolveApiUrl(undefined), "http://localhost:8080");
+  assert.equal(resolveApiUrl(undefined), "https://3.126.250.133/api");
+  assert.equal(resolveApiUrl("   ", false), productionApiUrl);
   assert.equal(resolveApiUrl(" https://api.example.com/api/// ", true), "https://api.example.com/api");
   assert.equal(resolveApiUrl("/api/"), "/api");
   assert.equal(productionApiUrl, "https://3.126.250.133/api");

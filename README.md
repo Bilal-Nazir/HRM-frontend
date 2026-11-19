@@ -18,15 +18,7 @@ This is a public browser setting, not a secret. Next.js embeds it at **build tim
 so rebuild when changing it. HTTPS frontends must connect to an HTTPS backend.
 The backend must allow the frontend's origin through its CORS configuration.
 
-<<<<<<< HEAD
 ## Local development
-=======
-1. Copy `.env.example` to `.env.local`.
-2. Set `NEXT_PUBLIC_API_URL` to the backend URL (default: `https://3.126.250.133/api`). Use `http://localhost:8080` only when explicitly testing a local backend.
-3. Run `npm install`.
-4. Run `npm run dev`.
-5. Open `http://localhost:3000`.
->>>>>>> prod
 
 ```sh
 cp .env.example .env.local
@@ -34,31 +26,26 @@ npm ci
 npm run dev
 ```
 
-<<<<<<< HEAD
-Open <http://localhost:3000>. The example uses a local backend at
-`http://localhost:8080`. To use the deployed backend, change `.env.local` to:
-=======
-## Cloudflare frontend with AWS backend
-
-Set the Cloudflare build variable `NEXT_PUBLIC_API_URL=https://3.126.250.133/api`.
-This URL is public and contains no credentials. The API client also uses this AWS
-address if the variable is omitted; Docker's explicit `/api` setting remains supported.
-Rebuild the frontend when changing this build variable.
-
-Deploy the matching backend changes to AWS as well. The chat and profile screens
-require `/api/chat/*` and `/api/auth/profile*`; an older backend returns 404 even if
-the frontend deploy succeeds. Uploads and chat messages are sent directly to AWS,
-with existing bearer-token authentication. No local backend is needed for the
-deployed frontend.
-
-## Included screens
->>>>>>> prod
+Open <http://localhost:3000>. Both development and production use the same live
+AWS backend by default; a local backend is not required:
 
 ```dotenv
 NEXT_PUBLIC_API_URL=https://3.126.250.133/api
 ```
 
 Restart the dev server after changing this value. `.env.local` is ignored by Git.
+Requests made locally use real company data and normal account permissions.
+
+## Cloudflare frontend with AWS backend
+
+Set the Cloudflare build variable `NEXT_PUBLIC_API_URL=https://3.126.250.133/api`.
+The same URL is used if the variable is omitted. Docker and GitHub Actions also
+use this default. Rebuild the frontend after changing this build variable.
+
+The daily overview supports the existing live task/workflow/work-log endpoints
+when `/projects/my-day` is not yet available. It uses the summary endpoint once
+that backend update is deployed; a frontend-only release can continue using the
+older AWS backend. Session validation and all permissions still come from AWS.
 
 ## Independent hosting
 

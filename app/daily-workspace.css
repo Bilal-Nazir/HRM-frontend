@@ -1,0 +1,516 @@
+.daily-workspace {
+  margin-bottom: 24px;
+}
+.daily-data-note { margin:0 0 16px;color:var(--muted);font-size:14px;line-height:1.5; }
+.daily-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 28px 0 18px;
+}
+.daily-heading h2 {
+  font-size: 24px;
+  line-height: 1.3;
+}
+.daily-heading p,
+.daily-panel-header p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.daily-heading .button {
+  flex-shrink: 0;
+}
+.daily-metrics {
+  display: grid;
+  grid-template-columns: 1.4fr repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.daily-metric {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 18px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+}
+button.daily-metric {
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+button.daily-metric:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--surface-soft);
+}
+.daily-metric svg {
+  margin-bottom: 14px;
+  color: var(--primary);
+}
+.daily-metric > span {
+  color: var(--muted);
+  font-size: 14px;
+}
+.daily-metric > strong {
+  margin: 7px 0;
+  font-size: 28px;
+  line-height: 1.25;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.daily-metric > small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.daily-metric.daily-time {
+  background: var(--primary-soft);
+  border-color: color-mix(in srgb, var(--primary) 25%, var(--line));
+}
+.daily-metric.needs-attention > strong,
+.daily-metric.needs-attention svg,
+.daily-overdue {
+  color: var(--danger, var(--red));
+}
+.daily-panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(310px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.daily-panels > .card {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  background: var(--surface);
+}
+.daily-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 22px;
+  border-bottom: 1px solid var(--line);
+}
+.daily-panel-header h2 {
+  font-size: 19px;
+}
+.daily-panel-header > svg {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.daily-count {
+  display: grid;
+  place-items: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 9px;
+  background: var(--surface-soft);
+  font-size: 14px;
+  font-weight: 700;
+}
+.daily-filters {
+  display: flex;
+  gap: 5px;
+  padding: 13px 16px;
+  overflow: auto;
+  border-bottom: 1px solid var(--line);
+}
+.daily-filters button {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+}
+.daily-filters button[aria-pressed="true"] {
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-color: color-mix(in srgb, var(--primary) 25%, var(--line));
+  font-weight: 700;
+}
+.daily-task-list {
+  max-height: 530px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+.daily-task-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.daily-task-row:last-child {
+  border-bottom: 0;
+}
+.daily-task-row:hover {
+  background: var(--surface-soft);
+}
+.daily-task-symbol {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 33px;
+  height: 33px;
+  border-radius: 9px;
+  background: var(--surface-soft);
+  color: var(--muted);
+}
+.daily-task-symbol.state-in_progress,
+.daily-task-symbol.state-done {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+.daily-task-copy {
+  flex: 1;
+  min-width: 0;
+}
+.daily-task-copy > span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.daily-task-copy > strong {
+  display: block;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.daily-task-copy > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.daily-status {
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+.daily-priority {
+  text-transform: capitalize;
+}
+.daily-priority.priority-high,
+.daily-priority.priority-critical {
+  color: var(--danger, var(--red));
+}
+.daily-task-time {
+  display: grid;
+  grid-template-columns: auto;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding-top: 2px;
+  color: var(--muted);
+}
+.daily-task-time strong {
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.daily-task-time span {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  text-align: right;
+}
+.daily-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+  padding: 20px 16px 16px;
+}
+.daily-week button {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 2px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--ink);
+}
+.daily-week button > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.daily-week button > strong {
+  font-size: 18px;
+  font-weight: 600;
+}
+.daily-week button > small {
+  min-height: 17px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.daily-week button.is-today {
+  border-color: var(--line);
+}
+.daily-week button.selected {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--on-primary, #fff);
+}
+.daily-week button.selected > span,
+.daily-week button.selected > small {
+  color: inherit;
+}
+.daily-agenda-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 22px;
+  color: var(--muted);
+  font-size: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.daily-agenda-header strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+.daily-agenda {
+  max-height: 375px;
+  overflow: auto;
+}
+.daily-event {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin: 0 20px;
+  padding: 17px 0;
+  border-bottom: 1px solid var(--line);
+}
+.daily-event:hover strong {
+  color: var(--primary);
+}
+.daily-event:last-child {
+  border-bottom: 0;
+}
+.daily-event time {
+  width: 70px;
+  flex-shrink: 0;
+  padding-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.daily-event > div {
+  min-width: 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--primary);
+}
+.daily-event.event-due > div {
+  border-color: var(--warning, var(--amber));
+}
+.daily-event span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+.daily-event strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.daily-event small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 6px;
+}
+.daily-calendar-footer {
+  padding: 15px 22px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  border-top: 1px solid var(--line);
+  background: var(--surface-soft);
+}
+.daily-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 245px;
+  padding: 30px 25px;
+  gap: 10px;
+  text-align: center;
+}
+.daily-empty > svg {
+  color: var(--primary);
+}
+.daily-empty > strong {
+  font-size: 16px;
+}
+.daily-empty p {
+  max-width: 330px;
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.daily-error {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--danger, var(--red));
+  border-radius: 12px;
+  margin-bottom: 16px;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.daily-error > span {
+  flex: 1;
+}
+.daily-attendance-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.daily-attendance-strip > a {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 18px 22px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.daily-attendance-strip > a:hover {
+  border-color: var(--primary);
+}
+.daily-attendance-strip svg {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.daily-attendance-strip span,
+.daily-attendance-strip strong {
+  display: block;
+}
+.daily-attendance-strip span,
+.daily-attendance-strip small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.daily-attendance-strip strong {
+  margin-top: 3px;
+  font-size: 18px;
+}
+.daily-attendance-strip small {
+  margin-left: auto;
+  text-align: right;
+}
+.daily-year-summary {
+  margin: 24px 0;
+  background: var(--surface);
+}
+.daily-year-summary > summary {
+  padding: 18px 22px;
+  color: var(--ink);
+  font-size: 14px;
+  cursor: pointer;
+}
+.daily-year-summary .attendance-insights {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.daily-location-support {
+  margin-top: 24px;
+}
+.daily-workspace button:focus-visible,
+.daily-workspace a:focus-visible,
+.daily-attendance-strip a:focus-visible,
+.daily-year-summary > summary:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+}
+@media (min-width: 1600px) {
+  .daily-task-list {
+    max-height: 610px;
+  }
+}
+@media (max-width: 1200px) {
+  .daily-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .daily-panels {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .daily-agenda {
+    max-height: 350px;
+  }
+}
+@media (max-width: 600px) {
+  .daily-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .daily-heading h2 {
+    font-size: 22px;
+  }
+  .daily-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .daily-metric {
+    padding: 16px;
+  }
+  .daily-panel-header {
+    padding: 18px;
+  }
+  .daily-task-row {
+    padding: 16px 12px;
+    gap: 9px;
+  }
+  .daily-task-symbol {
+    display: none;
+  }
+  .daily-task-time {
+    max-width: 84px;
+  }
+  .daily-task-time strong {
+    font-size: 13px;
+  }
+  .daily-task-copy > strong {
+    font-size: 15px;
+  }
+  .daily-attendance-strip {
+    grid-template-columns: 1fr;
+  }
+  .daily-event {
+    margin: 0 15px;
+    gap: 8px;
+  }
+  .daily-error {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

@@ -12,6 +12,7 @@ const Link = ({ children, ...props }) => React.createElement('a', props, childre
 function load(file, mocks = {}) {
   const scope = { exports: {}, URL, URLSearchParams, window: {}, require(name) {
     if (name in mocks) return mocks[name];
+    if (name.endsWith('.css')) return {};
     if (name === '@/lib/auth') return { getSession: () => currentUser };
     if (name === '@/lib/access') return load('lib/access.ts');
     if (name === '@/lib/taskLinks') return load('lib/taskLinks.ts');

@@ -67,3 +67,30 @@
 :root[data-theme="obsidian-rose"] .employee-day-card h2,:root[data-theme="obsidian-rose"] .employee-day-card .clock-display{color:var(--ink)}
 :root[data-theme="obsidian-rose"] .employee-day-card>p,:root[data-theme="obsidian-rose"] .employee-day-card .clock-caption,:root[data-theme="obsidian-rose"] .employee-location,:root[data-theme="obsidian-rose"] .employee-loading{color:var(--muted)}
 :root[data-theme="obsidian-rose"] .employee-day-card .button-primary{color:#fff;background:var(--primary);background-image:none}
+
+/* Compact welcome: inspiration beside a live attendance duration. */
+.employee-welcome.employee-welcome-compact { gap:24px;padding:20px 24px;margin-bottom:20px;border-radius:20px; }
+.employee-welcome-compact .employee-welcome-copy { flex:1;min-width:0; }
+.employee-welcome-topline { display:flex;align-items:center;gap:12px;margin-bottom:7px; }
+.employee-welcome-topline .eyebrow { margin:0;font-size:10px; }
+.employee-welcome-topline .employee-status-chip { flex-shrink:0;margin:0;padding:3px 9px;font-size:11px; }
+.welcome-weather { min-width:0;margin-left:auto;max-width:220px; }
+.welcome-weather button { display:block;max-width:100%;padding:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:0;background:none;color:var(--muted);font-size:12px;line-height:23px; }
+.welcome-weather button:hover:not(:disabled) { color:var(--primary); }
+.welcome-weather button:focus-visible { outline:2px solid var(--primary);outline-offset:3px; }
+.employee-welcome-compact h1 { font-size:clamp(23px,2.5vw,30px);line-height:1.3; }
+.employee-welcome .welcome-quote { position:relative;max-width:740px;margin:11px 0 0;padding:0 31px 0 13px;border-left:3px solid var(--primary); }
+.employee-welcome .welcome-quote p { margin:0;color:var(--ink);font-size:15px;font-weight:500;line-height:1.6; }
+.welcome-quote cite { display:inline-block;margin-left:5px;color:var(--primary-hover);font-size:12px;font-style:normal;font-weight:600;white-space:nowrap; }
+.welcome-quote-refresh { position:absolute;right:0;top:0;display:grid;place-items:center;width:26px;height:26px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--primary); }
+.welcome-quote-refresh:hover { background:var(--primary-soft); }
+.welcome-quote-refresh:focus-visible { outline:2px solid var(--primary);outline-offset:3px; }
+.employee-welcome-session { position:relative;z-index:1;display:flex;align-items:center;gap:20px;flex:0 0 auto;padding-left:24px;border-left:1px solid var(--line); }
+.employee-session-clock { display:flex;flex-direction:column;gap:5px;text-align:center; }
+.employee-session-label { display:flex;justify-content:center;align-items:center;gap:6px;color:var(--muted);font-size:12px; }
+.employee-session-clock strong { color:var(--ink);font-family:Manrope,sans-serif;font-size:30px;font-weight:700;line-height:1.2;letter-spacing:.01em;font-variant-numeric:tabular-nums; }
+.employee-session-units { color:var(--muted);font-size:10px; }
+.employee-welcome-compact .dashboard-check-button { min-width:112px;min-height:42px; }
+:root[data-theme="obsidian-rose"] .welcome-quote cite { color:var(--primary); }
+@media(max-width:1050px) { .employee-welcome-session { flex-direction:column;gap:10px;padding-left:20px; }.employee-session-clock strong { font-size:27px; } }
+@media(max-width:760px) { .employee-welcome.employee-welcome-compact { padding:18px;gap:18px; }.employee-welcome-session { width:100%;flex-direction:row;justify-content:space-between;gap:14px;padding:15px 0 0;border-left:0;border-top:1px solid var(--line); }.employee-session-clock { text-align:left; }.employee-session-label { justify-content:flex-start; }.employee-welcome .welcome-quote { max-width:none; }.employee-welcome .welcome-quote p { font-size:14px; } }

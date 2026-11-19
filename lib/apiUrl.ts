@@ -1,7 +1,7 @@
 export const productionApiUrl = "https://3.126.250.133/api";
 
-export function resolveApiUrl(value: string | undefined, production = false): string {
-  const url = (value?.trim() || (production ? productionApiUrl : "http://localhost:8080")).replace(/\/+$/, "");
+export function resolveApiUrl(value: string | undefined, _production = false): string {
+  const url = (value?.trim() || productionApiUrl).replace(/\/+$/, "");
   if (/^\/(?!\/)[a-z\d/_-]+$/i.test(url)) return url;
   try {
     const parsed = new URL(url);

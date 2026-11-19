@@ -1,4 +1,5 @@
 .dashboard-engagement { display:grid;grid-template-columns:minmax(280px,.8fr) minmax(0,1.2fr);gap:14px;margin:0 0 22px }
+.dashboard-engagement.weather-only { grid-template-columns:minmax(0,1fr); }
 .dashboard-engagement article { position:relative;display:flex;align-items:center;gap:14px;min-height:112px;padding:18px 52px 18px 19px;overflow:hidden;border:1px solid #dce9e5;border-radius:18px;box-shadow:0 9px 28px rgba(28,57,65,.06) }
 .dashboard-engagement article:before { content:"";position:absolute;inset:0;background-image:url('/images/dashboard-botanical-v1.png');background-repeat:no-repeat;background-position:right bottom;background-size:auto 145%;pointer-events:none }
 .engagement-weather { background:linear-gradient(135deg,#e7f6f1,#f8fcfb) }
