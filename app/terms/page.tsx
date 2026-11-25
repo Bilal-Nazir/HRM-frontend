@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
 import { FileText, Pencil } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import { EmptyState, ErrorBanner, PageHeader } from "@/components/ui";
@@ -20,6 +19,8 @@ export default function TermsPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [reload, setReload] = useState(0);
+  const [files, setFiles] = useState<File[]>([]);
+  const [removeFileIds, setRemoveFileIds] = useState<string[]>([]);
   const [form, setForm] = useState({
     title: "Company Policies",
     content: "",
@@ -53,12 +54,51 @@ export default function TermsPage() {
     setError("");
     setSuccess("");
     try {
-      const result = await api.patch<{ terms: Terms }>("/terms", form);
+      if (files.reduce((total, file) => total + file.size, 0) > 6 * 1024 * 1024) throw new Error("Choose up to 6 MB of documents.");
+      const uploads = await Promise.all(files.map(async (file) => {
+        const data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result).split(",")[1]);
+          reader.onerror = () => reject(new Error(`Could not read ${file.name}`));
+          reader.readAsDataURL(file);
+        });
+        return { name: file.name, data };
+      }));
+      const result = await api.patch<{ terms: Terms }>("/terms", { ...form, files: uploads, removeFileIds });
       setTerms(result.terms);
+      setFiles([]);
+      setRemoveFileIds([]);
       setEditing(false);
       setSuccess(
         "Company policies published. All employees in your organization can read them.",
       );
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const download = async (file: NonNullable<Terms["files"]>[number]) => {
+    try {
+      const url = URL.createObjectURL(await api.download(`/terms/files/${file.id}`));
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = file.name;
+      anchor.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  };
+  const removePolicies = async () => {
+    if (!window.confirm("Delete the published company policies?")) return;
+    setSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      await api.delete("/terms");
+      setTerms(null);
+      setForm({ title: "Company Policies", content: "" });
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -75,7 +115,7 @@ export default function TermsPage() {
           allowed &&
           !editing && (
             <button
-              disabled={loading || !!error}
+              disabled={loading || saving}
               className="button button-primary"
               onClick={() => {
                 setEditing(true);
@@ -142,11 +182,19 @@ export default function TermsPage() {
               />
             </div>
             <div className="content-actions">
+              <label className="field">Policy documents
+                <input type="file" multiple accept=".pdf,.doc,.docx" onChange={(event) => setFiles(Array.from(event.target.files ?? []))} />
+              </label>
+              {terms?.files?.map((file) => <label key={file.id}>
+                <input type="checkbox" checked={removeFileIds.includes(file.id)} onChange={(event) => setRemoveFileIds((ids) => event.target.checked ? [...ids, file.id] : ids.filter((id) => id !== file.id))} /> Remove {file.name}
+              </label>)}
               <button
                 type="button"
                 className="button button-secondary"
                 onClick={() => {
                   setEditing(false);
+                  setFiles([]);
+                  setRemoveFileIds([]);
                   setError("");
                   setForm(
                     terms
@@ -164,7 +212,7 @@ export default function TermsPage() {
           </fieldset>
         </form>
       ) : (
-        !error && (
+        (
           <section className="card">
             {terms ? (
               <>
@@ -182,7 +230,12 @@ export default function TermsPage() {
                 </div>
                 <div className="content-padding content-prose terms-copy">
                   {terms.content}
+                  {!!terms.files?.length && <>
+                    {terms.files.length > 1 && <button type="button" className="button button-secondary" onClick={() => { void Promise.all(terms.files!.map(download)); }}>Download all documents</button>}
+                    <ul>{terms.files.map((file) => <li key={file.id}><button type="button" className="button button-secondary" onClick={() => void download(file)}>{file.name}</button></li>)}</ul>
+                  </>}
                 </div>
+                {allowed && <div className="content-padding"><button type="button" className="button button-secondary" disabled={saving} onClick={() => void removePolicies()}>Delete policies</button></div>}
               </>
             ) : (
               <EmptyState

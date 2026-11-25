@@ -21,6 +21,7 @@ export default function AnnouncementsPanel({
   const [data, setData] = useState<AnnouncementList | null>(null);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
+  const [category, setCategory] = useState("");
   const [retry, setRetry] = useState(0);
   const [loading, setLoading] = useState(true);
   const [readKeys, setReadKeys] = useState<string[]>([]);
@@ -82,7 +83,7 @@ export default function AnnouncementsPanel({
     // on page one hide announcements further down the feed.
     const load = async () => {
       let result = await api.get<AnnouncementList>(
-        `/announcements?page=${onlyUnread ? 1 : page}&size=${onlyUnread ? 50 : compact ? 3 : 10}`,
+        `/announcements?page=${onlyUnread ? 1 : page}&size=${onlyUnread ? 50 : compact ? 3 : 10}&category=${encodeURIComponent(category)}`,
       );
       if (!onlyUnread) return result;
       let items = result.announcements.filter(
@@ -118,7 +119,7 @@ export default function AnnouncementsPanel({
     return () => {
       cancelled = true;
     };
-  }, [page, retry, compact, onlyUnread, readsReady, readVersion]);
+  }, [page, retry, compact, onlyUnread, readsReady, readVersion, category]);
   if (
     onlyUnread &&
     readsReady &&
@@ -161,6 +162,12 @@ export default function AnnouncementsPanel({
         )}
       </div>
       <div className="announcement-items" aria-live="polite">
+        {!compact && <label className="field">Category
+          <select value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }}>
+            <option value="">All categories</option>
+            {(data?.categories ?? []).map((name) => <option key={name}>{name}</option>)}
+          </select>
+        </label>}
         {loading ? (
           <p className="content-note">Loading announcements…</p>
         ) : error ? (
@@ -189,7 +196,7 @@ export default function AnnouncementsPanel({
               key={item.id}
             >
               <div className="announcement-title">
-                <h3>{item.title}</h3>
+                <div><h3>{item.title}</h3><small>{item.category || "General"}</small></div>
                 <time dateTime={item.createdAt}>
                   {new Date(item.createdAt).toLocaleDateString()}
                 </time>

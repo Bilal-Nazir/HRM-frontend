@@ -2,6 +2,7 @@
 
 import AppShell from "@/components/AppShell";
 import CheckoutConfirmation from "@/components/CheckoutConfirmation";
+import StandupForm, { StandupInput, StandupStatus } from "@/components/StandupForm";
 import {
   EmptyState,
   ErrorBanner,
@@ -13,6 +14,7 @@ import { captureAttendanceDevice } from "@/lib/attendanceDevice";
 import AttendanceLocationReview from "@/components/AttendanceLocationReview";
 import { captureAttendanceLocation, errorMessage } from "@/lib/workspace";
 import { useClientClock } from "@/lib/useClientClock";
+import { groupAttendanceDays } from "@/lib/attendanceReport";
 import { Attendance } from "@/types";
 import { AttendanceInsights, AttendanceLocation, AttendanceSummary } from "@/components/AttendanceInsights";
 import { Clock3, LocateFixed, LogIn, LogOut } from "lucide-react";
@@ -35,6 +37,7 @@ function sessionDuration(record: Attendance) {
 
 export default function AttendancePage() {
   const [records, setRecords] = useState<Attendance[] | null>(null);
+  const [taskHoursByDate, setTaskHoursByDate] = useState<Record<string, number>>({});
   const [summary, setSummary] = useState<AttendanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [action, setAction] = useState<"idle" | "locating" | "saving">("idle");
@@ -49,10 +52,11 @@ export default function AttendancePage() {
     setLoading(true);
     setLoadError("");
     try {
-      const result = await api.get<{ attendances: Attendance[] }>(
+      const result = await api.get<{ attendances: Attendance[]; taskHoursByDate?: Record<string, number> }>(
         "/attendance/history?size=50",
       );
       setRecords(result.attendances || []);
+      setTaskHoursByDate(result.taskHoursByDate ?? {});
       api.get<AttendanceSummary>("/attendance/summary").then(setSummary).catch(() => setSummary(null));
     } catch (error) {
       setRecords(null);
@@ -70,12 +74,9 @@ export default function AttendancePage() {
       !record.checkOutAt && ["open", "flagged"].includes(record.status),
   );
 
-  const attendanceAction = async (confirmed = false) => {
+  const [standup, setStandup] = useState<StandupStatus | null>(null);
+  const attendanceAction = async (confirmed = false, report?: StandupInput) => {
     if (actionInProgress.current || loading || records === null) return;
-    if (openRecord && !confirmed) {
-      setConfirmCheckout(true);
-      return;
-    }
     if (confirmed && !openRecord) {
       setConfirmCheckout(false);
       return;
@@ -87,13 +88,25 @@ export default function AttendancePage() {
     setSuccess("");
     let submitted = false;
     try {
+      if (!report) {
+        const status = await api.get<StandupStatus>("/attendance/standup");
+        if (openRecord ? status.plan : status.enabled) {
+          setStandup(status);
+          return;
+        }
+        if (openRecord && !confirmed) {
+          setConfirmCheckout(true);
+          return;
+        }
+      }
       const location = await captureAttendanceLocation();
       setAction("saving");
       submitted = true;
       await api.post(
         openRecord ? "/attendance/check-out" : "/attendance/check-in",
-        { ...location, device: await captureAttendanceDevice().catch(() => ({})) },
+        { ...location, device: await captureAttendanceDevice().catch(() => ({})), standup: report },
       );
+      setStandup(null);
       setSuccess(
         openRecord
           ? "Checked out successfully. Your location was recorded and running task timers were paused."
@@ -113,6 +126,7 @@ export default function AttendancePage() {
 
   return (
     <AppShell>
+      {standup && <StandupForm plan={standup.plan} busy={action !== "idle"} submitError={actionError} onCancel={() => setStandup(null)} onSubmit={(report) => void attendanceAction(!!openRecord, report)} />}
       {confirmCheckout && (
         <CheckoutConfirmation
           onCancel={() => setConfirmCheckout(false)}
@@ -262,8 +276,16 @@ export default function AttendancePage() {
                     <th>Status</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {records.map((record) => (
+                {groupAttendanceDays(records.map((record) => ({
+                  ...record,
+                  workedHours: record.checkOutAt
+                    ? Math.max(0, (+new Date(record.checkOutAt) - +new Date(record.checkInAt)) / 3600000)
+                    : 0,
+                  flags: record.flags ?? [],
+                }))).map((day) => (
+                <tbody key={day.date}>
+                  <tr><th colSpan={6} scope="rowgroup">{day.date} · {day.totalHours.toFixed(2)}h worked · {(taskHoursByDate[day.date] ?? 0).toFixed(2)}h on tasks</th></tr>
+                  {day.sessions.map((record) => (
                     <tr key={record.id}>
                       <td>{record.workDate}</td>
                       <td>
@@ -284,12 +306,11 @@ export default function AttendancePage() {
                       </td>
                       <td>{sessionDuration(record)}{record.flags?.length ? <small className="attendance-flags">{record.flags.join(", ").replaceAll("_", " ")}</small> : null}</td>
                       <td><AttendanceLocation record={record} /></td>
-                      <td>
-                        <StatusPill value={record.status} />
-                      </td>
+                      <td><StatusPill value={record.status} /></td>
                     </tr>
                   ))}
                 </tbody>
+                ))}
               </table>
             </div>
           )}

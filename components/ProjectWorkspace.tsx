@@ -57,7 +57,7 @@ import {
   WorkflowStatus,
 } from "@/types";
 
-import { emptyProjectFilters, projectFilterKey, projectView, readProjectFilters, writeProjectFilters, ProjectFilters, ProjectView } from "@/lib/projectPreferences";
+import { emptyProjectFilters, projectFilterKey, projectView, readProjectFilters, ProjectFilters, ProjectView } from "@/lib/projectPreferences";
 
 type Tab = ProjectView;
 const tabs: {
@@ -237,17 +237,15 @@ export default function ProjectWorkspace() {
     setTab(projectView(pathname, requestedView, admin));
   }, [pathname, requestedView, admin]);
   useEffect(() => {
-    const filters = readProjectFilters(window.localStorage, filterKey, requestedAssignee);
+    const filters = readProjectFilters(window.localStorage, null, requestedAssignee);
     savedFilters.current = filters;
     setSearch(filters.search); setPriority(filters.priority); setAssignee(filters.assignee);
-    writeProjectFilters(window.localStorage, filterKey, filters);
     setFiltersLoadedFor(filterScope);
   }, [filterKey, filterScope, requestedAssignee]);
   const changeProjectFilters = (changes: Partial<ProjectFilters>) => {
     const filters = { ...savedFilters.current, ...changes };
     savedFilters.current = filters;
     setSearch(filters.search); setPriority(filters.priority); setAssignee(filters.assignee);
-    writeProjectFilters(window.localStorage, filterKey, filters);
   };
   useEffect(() => {
     if (admin)
@@ -294,7 +292,13 @@ export default function ProjectWorkspace() {
     if (push) router.push(target, { scroll: false });
     else router.replace(target, { scroll: false });
   };
-  const calendarTasks = useMemo(() => filtered.filter((task) => task.startDate || task.dueDate), [filtered]);
+  const calendarTasks = useMemo(
+    () => filtered.filter((task) =>
+      (task.startDate || task.dueDate) &&
+      (adminRoute || (!!session?.employeeId && task.assigneeEmployeeIds.includes(session.employeeId))),
+    ),
+    [filtered, adminRoute, session?.employeeId],
+  );
   const tasksForDay = useCallback((day: Date) => calendarTasks.filter((task) => localDateKey(new Date(task.startDate || task.dueDate || "")) === localDateKey(day)), [calendarTasks]);
   const remindersForDay = useCallback((day: Date) => reminders.filter((reminder) => localDateKey(new Date(reminder.scheduledAt)) === localDateKey(day)), [reminders]);
   const monthCells = useMemo(() => {
@@ -711,9 +715,9 @@ export default function ProjectWorkspace() {
                 <option>critical</option>
               </select>
               <div className="assignee-profile-filter" aria-label="Filter by assignee">
-                <button type="button" className={!assignee ? "active" : ""} onClick={() => { changeProjectFilters({ assignee: "" }); setProjectQuery("assignee", ""); }} title="All assignees">All</button>
+                <button type="button" className={!assignee ? "active" : ""} onClick={() => { changeProjectFilters({ assignee: "" }); }} title="All assignees">All</button>
                 {members.filter((m) => m.employee).map((m) => (
-                  <button type="button" key={m.employeeId} className={assignee === m.employeeId ? "active" : ""} onClick={() => { const next = assignee === m.employeeId ? "" : m.employeeId; changeProjectFilters({ assignee: next }); setProjectQuery("assignee", next); }} title={`${m.employee?.firstName} ${m.employee?.lastName}`}>
+                  <button type="button" key={m.employeeId} className={assignee === m.employeeId ? "active" : ""} onClick={() => { const next = assignee === m.employeeId ? "" : m.employeeId; changeProjectFilters({ assignee: next }); }} title={`${m.employee?.firstName} ${m.employee?.lastName}`}>
                     {m.employee?.firstName?.[0]}{m.employee?.lastName?.[0]}
                   </button>
                 ))}
@@ -952,6 +956,7 @@ export default function ProjectWorkspace() {
                         <th>Priority</th>
                         <th>Assignees</th>
                         <th>Time</th>
+                        <th>Start date</th>
                         <th>Due date</th>
                       </tr>
                     </thead>
@@ -986,6 +991,7 @@ export default function ProjectWorkspace() {
                               "Unassigned"}
                           </td>
                           <td>{formatElapsed(elapsedSeconds(task, now))}</td>
+                          <td>{task.startDate ? new Date(task.startDate).toLocaleString() : "—"}</td>
                           <td>
                             {task.dueDate
                               ? new Date(task.dueDate).toLocaleDateString()
@@ -1060,6 +1066,7 @@ export default function ProjectWorkspace() {
           </section>
         )}
         {tab === "workflow" && admin && (<>
+          {adminRoute && <Link className="button button-secondary" href="/admin/attendance/standup">Daily stand-up settings and reports</Link>}
           <TaskDurationSettings project={project} onSaved={setProject}/>
           <section className="card">
             <div className="card-header">

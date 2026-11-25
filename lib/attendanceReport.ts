@@ -1,7 +1,7 @@
 import type { AttendanceSummary } from "@/components/AttendanceInsights";
 
-export function groupAttendanceDays(sessions: AttendanceSummary["daily"]) {
-  const groups = new Map<string, AttendanceSummary["daily"]>();
+export function groupAttendanceDays<T extends Pick<AttendanceSummary["daily"][number], "workDate" | "checkInAt" | "workedHours" | "flags">>(sessions: T[]) {
+  const groups = new Map<string, T[]>();
   for (const session of sessions) {
     const day = groups.get(session.workDate) || [];
     day.push(session);

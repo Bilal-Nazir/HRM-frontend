@@ -2,6 +2,8 @@ export const THEME_STORAGE_KEY = "hrm_theme";
 export const DARK_ACCENT_STORAGE_KEY = "hrm_dark_accent";
 
 export const themes = [
+  { id: "slate-teal", name: "Slate Teal", description: "Cool slate with a deep teal accent", colors: ["#146B70", "#172D3B", "#E4F3F2", "#95631B"] },
+  { id: "warm-fig", name: "Warm Fig", description: "Warm neutrals with a muted plum accent", colors: ["#783F63", "#352538", "#F6EAF1", "#855B28"] },
   { id: "emerald", name: "Emerald Atelier", description: "Calm, refined and familiar", colors: ["#149B7B", "#132747", "#E4F5EF", "#E2A73F"] },
   { id: "midnight-coral", name: "Midnight Coral", description: "Warm executive contrast", colors: ["#F29F67", "#1E1E2C", "#34B1AA", "#3B8FF3"] },
   { id: "indigo-sky", name: "Indigo Sky", description: "Confident and approachable", colors: ["#4B49AC", "#98BDFF", "#7978E9", "#F3797E"] },

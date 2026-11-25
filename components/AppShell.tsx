@@ -47,6 +47,7 @@ const navigation = [
   { href: "/attendance", label: "Attendance", icon: Clock3 },
   { href: "/leave", label: "Requests", icon: CalendarDays },
   { href: "/announcements", label: "Announcements", icon: Megaphone },
+  { href: "/terms", label: "Company policies", icon: FileText },
 ];
 const personalSettings = [
   { href: "/settings/profile", label: "Profile settings", icon: UserRound },
@@ -81,9 +82,7 @@ export default function AppShell({
   const [shortcuts, setShortcuts] = useState<Shortcut[]>([]);
   const [shortcutPickerOpen, setShortcutPickerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(
-    () =>
-      pathname.startsWith(`${routePrefix}/settings`) ||
-      pathname === `${routePrefix}/terms`,
+    () => pathname.startsWith(`${routePrefix}/settings`),
   );
   const now = useClientClock();
   const canSearchEmployees = hasPermission(user, "employee.read.all");
@@ -95,12 +94,17 @@ export default function AppShell({
             label: "Company settings",
             icon: Building2,
           },
-          { href: "/settings/hiring", label: "Hiring", icon: BriefcaseBusiness },
         ]
       : []),
-    { href: "/terms", label: "Company policies", icon: FileText },
   ];
-  const searchPages = [...navigation, ...companySettings, ...personalSettings];
+  const workspaceNavigation = [
+    ...navigation,
+    ...(isAdmin && (user?.isCompanyOwner || user?.isPlatformAdmin)
+      ? [{ href: "/hiring", label: "Hiring", icon: BriefcaseBusiness },
+         { href: "/attendance/standup", label: "Daily stand-up", icon: CalendarDays }]
+      : []),
+  ];
+  const searchPages = [...workspaceNavigation, ...companySettings, ...personalSettings];
 
   useEffect(() => {
     const session = getSession();
@@ -233,7 +237,7 @@ export default function AppShell({
                   ? "Company management"
                   : "Workspace"}
             </p>
-            {navigation
+            {workspaceNavigation
               .filter(
                 (item) =>
                   item.href !== "/employees" ||

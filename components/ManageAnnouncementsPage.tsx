@@ -15,6 +15,7 @@ import { canManageContent, errorMessage } from "@/lib/workspace";
 import { Announcement, AnnouncementList } from "@/types/workspace";
 
 const blank = {
+  category: "General",
   title: "",
   content: "",
   status: "draft" as Announcement["status"],
@@ -55,7 +56,7 @@ export default function ManageAnnouncementsPage() {
   const startEdit = (item?: Announcement) => {
     setForm(
       item
-        ? { title: item.title, content: item.content, status: item.status }
+        ? { title: item.title, content: item.content, status: item.status, category: item.category || "General" }
         : blank,
     );
     setEditing(item?.id || null);
@@ -130,6 +131,9 @@ export default function ManageAnnouncementsPage() {
                 <Megaphone size={21} />
               </div>
               <fieldset disabled={saving} className="content-fields">
+                <label className="field">Category
+                  <input required maxLength={60} value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} />
+                </label>
                 {formError && <ErrorBanner message={formError} />}
                 <div className="field">
                   <label htmlFor="announcement-title">Title</label>

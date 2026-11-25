@@ -135,7 +135,7 @@ export default function TaskDetails() {
       setComment(""); setMentioned([]); setMentionQuery(null);
     });
   };
-  const upload = async (files: FileList | null) => {
+  const upload = async (files: FileList | File[] | null) => {
     if (!files?.length) return;
     await act(async () => {
       for (const file of Array.from(files)) {
@@ -160,7 +160,13 @@ export default function TaskDetails() {
   const people = (persons: TaskPerson[]) => persons.length ? persons.map((person) => <div className="task-detail-person" key={person.id}><span className="avatar">{person.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("")}</span><TaskPersonLink person={person} admin={admin}/></div>) : <span className="task-detail-muted">Unassigned</span>;
   const suggestions = mentionQuery === null ? [] : members.filter((member) => member.employee && `${member.employee.firstName} ${member.employee.lastName} ${member.employee.employeeCode}`.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 6);
 
-  return <AppShell><div className="task-detail-page">
+  return <AppShell><div className="task-detail-page" onPaste={(event) => {
+    if (!canEdit || busy) return;
+    const images = Array.from(event.clipboardData.files).filter((file) => file.type.startsWith("image/"));
+    if (!images.length) return;
+    event.preventDefault();
+    void upload(images);
+  }}>
     <nav className="task-detail-breadcrumb" aria-label="Breadcrumb"><Link href={`${prefix}/projects`}>Projects</Link><span>/</span><Link href={backHref}>{data?.project.name || "Project"}</Link><span>/</span><span>{task?.key || "Task"}</span></nav>
     {error && <ErrorBanner message={error}/>}
     {loading && <div className="loading-line"/>}

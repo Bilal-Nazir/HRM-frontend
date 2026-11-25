@@ -16,6 +16,7 @@ import AttendanceLocationReview from "@/components/AttendanceLocationReview";
 import DailyWorkspace from "@/components/DailyWorkspace";
 import DashboardQuote from "@/components/DashboardQuote";
 import { attendanceClock } from "@/lib/attendanceClock";
+import StandupForm, { type StandupInput, type StandupStatus } from "@/components/StandupForm";
 
 function sessionDuration(session: Attendance | undefined, now: Date | null) {
   if (!session || !now) return "—";
@@ -41,6 +42,7 @@ export default function EmployeeDashboard() {
   const [actionError, setActionError] = useState("");
   const [actionSuccess, setActionSuccess] = useState("");
   const [confirmCheckout, setConfirmCheckout] = useState(false);
+  const [standup, setStandup] = useState<StandupStatus | null>(null);
   const attendanceBusy = useRef(false);
 
   useEffect(() => {
@@ -100,12 +102,8 @@ export default function EmployeeDashboard() {
         : latest
           ? "Checked out"
           : "No check-in yet";
-  const recordAttendance = async (confirmed = false) => {
+  const recordAttendance = async (confirmed = false, report?: StandupInput) => {
     if (attendanceBusy.current || loading || attendance === null) return;
-    if (open && !confirmed) {
-      setConfirmCheckout(true);
-      return;
-    }
     if (confirmed && !open) {
       setConfirmCheckout(false);
       return;
@@ -116,11 +114,23 @@ export default function EmployeeDashboard() {
     setActionError("");
     setActionSuccess("");
     try {
+      if (!report) {
+        const status = await api.get<StandupStatus>("/attendance/standup");
+        if (open ? status.plan : status.enabled) {
+          setStandup(status);
+          return;
+        }
+        if (open && !confirmed) {
+          setConfirmCheckout(true);
+          return;
+        }
+      }
       const location = await captureAttendanceLocation();
       await api.post(
         open ? "/attendance/check-out" : "/attendance/check-in",
-        { ...location, device: await captureAttendanceDevice().catch(() => ({})) },
+        { ...location, device: await captureAttendanceDevice().catch(() => ({})), standup: report },
       );
+      setStandup(null);
       setActionSuccess(
         open
           ? "Checked out successfully. Your running task timers were paused."
@@ -141,6 +151,7 @@ export default function EmployeeDashboard() {
 
   return (
     <AppShell employee={employee}>
+      {standup && <StandupForm plan={standup.plan} busy={actionLoading} submitError={actionError} onCancel={() => setStandup(null)} onSubmit={(report) => void recordAttendance(!!open, report)} />}
       {confirmCheckout && (
         <CheckoutConfirmation
           onCancel={() => setConfirmCheckout(false)}
