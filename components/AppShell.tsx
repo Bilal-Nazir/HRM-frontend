@@ -99,7 +99,7 @@ export default function AppShell({
   ];
   const workspaceNavigation = [
     ...navigation,
-    ...(isAdmin && (user?.isCompanyOwner || user?.isPlatformAdmin)
+    ...(user?.isCompanyOwner || user?.isPlatformAdmin
       ? [{ href: "/hiring", label: "Hiring", icon: BriefcaseBusiness },
          { href: "/attendance/standup", label: "Daily stand-up", icon: CalendarDays }]
       : []),

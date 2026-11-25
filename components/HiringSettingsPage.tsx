@@ -252,9 +252,8 @@ function ApplicantReview({
 }
 
 export default function HiringSettingsPage() {
-  const user = getSession(),
-    pathname = usePathname(),
-    prefix = pathname.startsWith("/admin") ? "/admin" : "";
+  const user = getSession();
+  const pathname = usePathname();
   const allowed = !!(user?.isCompanyOwner || user?.isPlatformAdmin);
   const [pages, setPages] = useState<HiringPage[]>([]),
     [selected, setSelected] = useState("");
@@ -358,7 +357,7 @@ export default function HiringSettingsPage() {
     window.history.replaceState(
       null,
       "",
-      `${prefix}/settings/hiring?page=${item.id}`,
+      `${pathname}?page=${item.id}`,
     );
   }
   function newPage() {
@@ -396,7 +395,7 @@ export default function HiringSettingsPage() {
       window.history.replaceState(
         null,
         "",
-        `${prefix}/settings/hiring?page=${data.page.id}`,
+        `${pathname}?page=${data.page.id}`,
       );
     } catch (error) {
       setError(failure(error));
@@ -492,7 +491,7 @@ export default function HiringSettingsPage() {
                       window.history.replaceState(
                         null,
                         "",
-                        `${prefix}/settings/hiring?page=${selected}`,
+                        `${pathname}?page=${selected}`,
                       );
                     }}
                     onSaved={() => {
@@ -608,7 +607,7 @@ export default function HiringSettingsPage() {
                                   window.history.replaceState(
                                     null,
                                     "",
-                                    `${prefix}/settings/hiring?page=${selected}&application=${a.id}`,
+                                    `${pathname}?page=${selected}&application=${a.id}`,
                                   );
                                 }}
                               >

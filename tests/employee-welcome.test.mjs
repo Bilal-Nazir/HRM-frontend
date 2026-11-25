@@ -106,6 +106,10 @@ test("the compact welcome shows a Quranic quote and active session duration inst
         __esModule: true,
         default: () => null,
       },
+      "@/components/StandupForm": {
+        __esModule: true,
+        default: () => null,
+      },
       "@/components/AnnouncementsPanel": {
         __esModule: true,
         default: () => null,

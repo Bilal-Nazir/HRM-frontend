@@ -1066,7 +1066,7 @@ export default function ProjectWorkspace() {
           </section>
         )}
         {tab === "workflow" && admin && (<>
-          {adminRoute && <Link className="button button-secondary" href="/admin/attendance/standup">Daily stand-up settings and reports</Link>}
+          {companyAdmin && <Link className="button button-secondary" href={`${prefix}/attendance/standup`}>Daily stand-up settings and reports</Link>}
           <TaskDurationSettings project={project} onSaved={setProject}/>
           <section className="card">
             <div className="card-header">

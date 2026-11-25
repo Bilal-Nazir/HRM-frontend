@@ -52,7 +52,7 @@ test('the shared user dashboard, attendance, requests and announcements retain c
     currentUser = employee; assert.match(renderToStaticMarkup(React.createElement(Page)), /Personal workspace/, file);
   }
 });
-test('settings group contains personal and company options on the correct portal with three compact shortcut slots', () => {
+test('workspace navigation and settings expose the correct links for each portal', () => {
   for (const user of [owner, platform, employee]) {
     for (const open of [false, true]) {
       currentUser = user; let index = 0;
@@ -71,12 +71,17 @@ test('settings group contains personal and company options on the correct portal
       assert.match(html, /aria-controls="sidebar-settings-options"/);
       assert.equal((html.match(/aria-label="Add shortcut [123]"/g) || []).length, 3);
       assert.doesNotMatch(html, /Choose up to 3 quick links|class="sidebar-shortcuts"/);
+      const navigation = html.slice(html.indexOf('<nav class="nav-list">'), html.indexOf('</nav>'));
+      const canManageCompany = user.isCompanyOwner || user.isPlatformAdmin;
+      assert.ok(navigation.includes(`href="${prefix}/terms"`));
+      assert.equal(navigation.includes(`href="${prefix}/hiring"`), canManageCompany);
+      assert.equal(navigation.includes(`href="${prefix}/attendance/standup"`), canManageCompany);
+      assert.doesNotMatch(html, /href="[^"]*\/settings\/hiring"/);
       if (open) {
-        for (const path of ['/settings/profile', '/settings/password', '/settings/theme', '/terms']) assert.ok(html.includes(`href="${prefix}${path}"`), path);
-        assert.equal(html.includes(`href="${prefix}/settings/company"`), !!user.isCompanyOwner || !!user.isPlatformAdmin);
-        assert.equal(html.includes(`href="${prefix}/settings/hiring"`), !!user.isCompanyOwner || !!user.isPlatformAdmin);
+        for (const path of ['/settings/profile', '/settings/password', '/settings/theme']) assert.ok(html.includes(`href="${prefix}${path}"`), path);
+        assert.equal(html.includes(`href="${prefix}/settings/company"`), canManageCompany);
       } else {
-        assert.doesNotMatch(html, /href="[^"]*\/settings\/|href="[^"]*\/terms"/);
+        assert.doesNotMatch(html, /href="[^"]*\/settings\//);
       }
       if (!user.isPlatformAdmin) assert.doesNotMatch(html, /href="\/admin\//);
       else assert.match(html, /Super Admin workspace/);

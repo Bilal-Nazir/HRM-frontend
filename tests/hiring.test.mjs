@@ -150,6 +150,8 @@ test("public careers pages bypass login while hiring management remains guarded 
   assert.equal(routes.protectedPortal(`/careers/${page.publicId}`), null);
   assert.equal(routes.protectedPortal("/settings/hiring"), "employee");
   assert.equal(routes.protectedPortal("/admin/settings/hiring"), "admin");
+  assert.equal(routes.protectedPortal("/hiring"), "employee");
+  assert.equal(routes.protectedPortal("/admin/hiring"), "admin");
   assert.equal(
     routes.authReturnPath(
       "/settings/hiring?page=page-1&application=app-1",

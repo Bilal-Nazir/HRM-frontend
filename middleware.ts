@@ -35,6 +35,7 @@ export const config = {
     "/chat/:path*",
     "/announcements/:path*",
     "/terms/:path*",
+    "/hiring/:path*",
     "/settings/:path*",
   ],
 };
