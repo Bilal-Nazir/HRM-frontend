@@ -15,7 +15,7 @@ type Report = {
   checkInAt: string;
   checkOutAt?: string;
   standup: StandupPlan;
-  standupResult?: { completed: TaskSnapshot[]; pending: TaskSnapshot[]; additional: TaskSnapshot[] };
+  standupResult?: { completed: TaskSnapshot[]; paused?: TaskSnapshot[]; pending: TaskSnapshot[]; additional?: TaskSnapshot[] };
 };
 
 export default function StandupReportsPage() {
@@ -52,7 +52,7 @@ export default function StandupReportsPage() {
       setSaving(false);
     }
   };
-  const names = (tasks?: TaskSnapshot[]) => tasks?.map((task) => task.title).join(", ") || "None";
+  const names = (tasks?: TaskSnapshot[]) => tasks?.map((task) => [task.key, task.title].filter(Boolean).join(" · ")).join(", ") || "None";
 
   return <AppShell>
     <PageHeader eyebrow="Attendance" title="Daily stand-up" description="Review employee plans and check-out reports by date." />
@@ -70,13 +70,14 @@ export default function StandupReportsPage() {
             <details>
               <summary>{new Date(report.checkInAt).toLocaleTimeString()} · {report.checkOutAt ? "Final report locked" : "Checked in"}</summary>
               <dl>
-                <dt>Yesterday</dt><dd>{names(report.standup.yesterday)}</dd>
+                {!!report.standup.yesterday?.length && <><dt>Yesterday</dt><dd>{names(report.standup.yesterday)}</dd></>}
                 <dt>Planned</dt><dd>{names(report.standup.planned)}</dd>
                 <dt>Blocker</dt><dd>{report.standup.blocker ? `${report.standup.blocker.text} (${report.standup.blocker.priority})` : "None"}</dd>
                 {report.standupResult && <>
                   <dt>Completed</dt><dd>{names(report.standupResult.completed)}</dd>
+                  {report.standupResult.paused && <><dt>Paused</dt><dd>{names(report.standupResult.paused)}</dd></>}
                   <dt>Pending</dt><dd>{names(report.standupResult.pending)}</dd>
-                  <dt>Additional completed</dt><dd>{names(report.standupResult.additional)}</dd>
+                  {!!report.standupResult.additional?.length && <><dt>Additional completed</dt><dd>{names(report.standupResult.additional)}</dd></>}
                 </>}
               </dl>
             </details>

@@ -15,6 +15,25 @@
   margin-top: auto;
   padding-top: 8px;
 }
+.sidebar-nav-group > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.sidebar-nav-group > summary::-webkit-details-marker { display: none; }
+.sidebar-nav-group > summary > span { flex: 1; }
+.sidebar-nav-chevron { flex: none; }
+.sidebar-nav-group[open] .sidebar-nav-chevron { transform: rotate(180deg); }
+.sidebar-nav-children {
+  display: grid;
+  gap: 2px;
+  margin: 4px 0 4px 19px;
+  padding-left: 8px;
+  border-left: 1px solid var(--line);
+}
+.sidebar-nav-children .nav-item {
+  padding-block: 8px;
+  font-size: 13px;
+}
 .sidebar-settings-toggle {
   display: flex;
   align-items: center;

@@ -57,7 +57,7 @@ import {
   WorkflowStatus,
 } from "@/types";
 
-import { emptyProjectFilters, projectFilterKey, projectView, readProjectFilters, ProjectFilters, ProjectView } from "@/lib/projectPreferences";
+import { emptyProjectFilters, projectFilterKey, projectView, readProjectFilters, writeProjectFilters, ProjectFilters, ProjectView } from "@/lib/projectPreferences";
 
 type Tab = ProjectView;
 const tabs: {
@@ -237,15 +237,17 @@ export default function ProjectWorkspace() {
     setTab(projectView(pathname, requestedView, admin));
   }, [pathname, requestedView, admin]);
   useEffect(() => {
-    const filters = readProjectFilters(window.localStorage, null, requestedAssignee);
+    const filters = readProjectFilters(window.localStorage, filterKey, requestedAssignee);
     savedFilters.current = filters;
     setSearch(filters.search); setPriority(filters.priority); setAssignee(filters.assignee);
+    writeProjectFilters(window.localStorage, filterKey, filters);
     setFiltersLoadedFor(filterScope);
   }, [filterKey, filterScope, requestedAssignee]);
   const changeProjectFilters = (changes: Partial<ProjectFilters>) => {
     const filters = { ...savedFilters.current, ...changes };
     savedFilters.current = filters;
     setSearch(filters.search); setPriority(filters.priority); setAssignee(filters.assignee);
+    writeProjectFilters(window.localStorage, filterKey, filters);
   };
   useEffect(() => {
     if (admin)
@@ -291,6 +293,11 @@ export default function ProjectWorkspace() {
     const target = `${pathname}${query.size ? `?${query.toString()}` : ""}`;
     if (push) router.push(target, { scroll: false });
     else router.replace(target, { scroll: false });
+  };
+  const selectAssignee = (employeeId: string) => {
+    const next = savedFilters.current.assignee === employeeId ? "" : employeeId;
+    changeProjectFilters({ assignee: next });
+    setProjectQuery("assignee", next);
   };
   const calendarTasks = useMemo(
     () => filtered.filter((task) =>
@@ -715,9 +722,9 @@ export default function ProjectWorkspace() {
                 <option>critical</option>
               </select>
               <div className="assignee-profile-filter" aria-label="Filter by assignee">
-                <button type="button" className={!assignee ? "active" : ""} onClick={() => { changeProjectFilters({ assignee: "" }); }} title="All assignees">All</button>
+                <button type="button" className={!assignee ? "active" : ""} aria-pressed={!assignee} onClick={() => selectAssignee("")} title="All assignees">All</button>
                 {members.filter((m) => m.employee).map((m) => (
-                  <button type="button" key={m.employeeId} className={assignee === m.employeeId ? "active" : ""} onClick={() => { const next = assignee === m.employeeId ? "" : m.employeeId; changeProjectFilters({ assignee: next }); }} title={`${m.employee?.firstName} ${m.employee?.lastName}`}>
+                  <button type="button" key={m.employeeId} className={assignee === m.employeeId ? "active" : ""} aria-pressed={assignee === m.employeeId} onClick={() => selectAssignee(m.employeeId)} title={`${m.employee?.firstName} ${m.employee?.lastName}`}>
                     {m.employee?.firstName?.[0]}{m.employee?.lastName?.[0]}
                   </button>
                 ))}

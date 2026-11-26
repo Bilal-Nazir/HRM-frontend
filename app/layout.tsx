@@ -16,6 +16,7 @@ import "./request-details.css";
 import "./chat.css";
 import "./profile-settings.css";
 import "./sidebar-settings.css";
+import "./standup.css";
 import "./hiring.css";
 
 export const metadata: Metadata = {

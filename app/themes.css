@@ -10,8 +10,6 @@
   --ink:#352538;--muted:#6e5c6d;--line:#e9dfe6;--surface:#fff;--surface-soft:#fcf8fa;--canvas:#f7f1f4;
   --sidebar-bg:#f6edf2;--sidebar-text:#685568;--sidebar-active:#ecd8e5;--sidebar-active-text:#673450;
 }
-.standup-fields { max-height: 65vh; overflow-y: auto; }
-.standup-choice { display:flex; align-items:center; gap:8px; padding:4px 0; }
 :root,
 :root[data-theme="emerald"] {
   --primary:#149b7b;--primary-hover:#0d7964;--primary-soft:#e4f5ef;--primary-contrast:#fff;

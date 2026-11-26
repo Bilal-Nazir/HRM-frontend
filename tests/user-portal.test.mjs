@@ -72,6 +72,8 @@ test('workspace navigation and settings expose the correct links for each portal
       assert.equal((html.match(/aria-label="Add shortcut [123]"/g) || []).length, 3);
       assert.doesNotMatch(html, /Choose up to 3 quick links|class="sidebar-shortcuts"/);
       const navigation = html.slice(html.indexOf('<nav class="nav-list">'), html.indexOf('</nav>'));
+      assert.match(navigation, /<details class="sidebar-nav-group"><summary[^>]*>.*?Time &amp; attendance/);
+      assert.match(navigation, /<details class="sidebar-nav-group"><summary[^>]*>.*?<span>Company<\/span>/);
       const canManageCompany = user.isCompanyOwner || user.isPlatformAdmin;
       assert.ok(navigation.includes(`href="${prefix}/terms"`));
       assert.equal(navigation.includes(`href="${prefix}/hiring"`), canManageCompany);

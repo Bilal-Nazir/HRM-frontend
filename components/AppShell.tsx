@@ -41,14 +41,10 @@ import { api } from "@/lib/api";
 
 const navigation = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/employees", label: "Employees", icon: Users },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/chat", label: "Inbox", icon: MessageSquare },
-  { href: "/attendance", label: "Attendance", icon: Clock3 },
-  { href: "/leave", label: "Requests", icon: CalendarDays },
-  { href: "/announcements", label: "Announcements", icon: Megaphone },
-  { href: "/terms", label: "Company policies", icon: FileText },
 ];
+type NavigationItem = (typeof navigation)[number];
 const personalSettings = [
   { href: "/settings/profile", label: "Profile settings", icon: UserRound },
   { href: "/settings/theme", label: "Appearance", icon: Palette },
@@ -97,14 +93,34 @@ export default function AppShell({
         ]
       : []),
   ];
-  const workspaceNavigation = [
-    ...navigation,
-    ...(user?.isCompanyOwner || user?.isPlatformAdmin
-      ? [{ href: "/hiring", label: "Hiring", icon: BriefcaseBusiness },
-         { href: "/attendance/standup", label: "Daily stand-up", icon: CalendarDays }]
-      : []),
+  const canManageCompany = user?.isCompanyOwner || user?.isPlatformAdmin;
+  const navigationGroups = [
+    {
+      label: "Time & attendance", icon: Clock3, items: [
+        { href: "/attendance", label: "Attendance", icon: Clock3 },
+        { href: "/leave", label: "Requests", icon: CalendarDays },
+        ...(canManageCompany ? [{ href: "/attendance/standup", label: "Daily stand-up", icon: ListTodo }] : []),
+      ],
+    },
+    {
+      label: "Company", icon: Building2, items: [
+        ...(canSearchEmployees ? [{ href: "/employees", label: "Employees", icon: Users }] : []),
+        { href: "/announcements", label: "Announcements", icon: Megaphone },
+        { href: "/terms", label: "Company policies", icon: FileText },
+        ...(canManageCompany ? [{ href: "/hiring", label: "Hiring", icon: BriefcaseBusiness }] : []),
+      ],
+    },
   ];
-  const searchPages = [...workspaceNavigation, ...companySettings, ...personalSettings];
+  const searchPages = [...navigation, ...navigationGroups.flatMap(({ items }) => items), ...companySettings, ...personalSettings];
+  const renderNavItem = ({ href, label, icon: Icon }: NavigationItem) => {
+    const resolvedHref = `${routePrefix}${href}`;
+    const active = pathname === resolvedHref;
+    return <Link key={href} href={resolvedHref} onClick={() => setMobileOpen(false)}
+      className={active ? "nav-item active" : "nav-item"} aria-current={active ? "page" : undefined}>
+      <Icon size={18} strokeWidth={1.9} />
+      <span>{label}</span>
+    </Link>;
+  };
 
   useEffect(() => {
     const session = getSession();
@@ -237,32 +253,21 @@ export default function AppShell({
                   ? "Company management"
                   : "Workspace"}
             </p>
-            {workspaceNavigation
-              .filter(
-                (item) =>
-                  item.href !== "/employees" ||
-                  canSearchEmployees ||
-                  user?.permissions?.some(
-                    (permission) =>
-                      permission === "*" || permission === "employee.read.all",
-                  ),
-              )
-              .map(({ href, label, icon: Icon }) => {
+            {navigation.map(renderNavItem)}
+            {navigationGroups.map(({ label, icon: Icon, items }) => {
+              const active = items.some(({ href }) => {
                 const resolvedHref = `${routePrefix}${href}`;
-                return (
-                  <Link
-                    key={href}
-                    href={resolvedHref}
-                    onClick={() => setMobileOpen(false)}
-                    className={
-                      pathname === resolvedHref ? "nav-item active" : "nav-item"
-                    }
-                  >
-                    <Icon size={18} strokeWidth={1.9} />
-                    <span>{label}</span>
-                  </Link>
-                );
-              })}
+                return pathname === resolvedHref || pathname.startsWith(`${resolvedHref}/`);
+              });
+              return <details key={`${label}:${pathname}`} className="sidebar-nav-group" open={active}>
+                <summary className={`nav-item${active ? " active" : ""}`}>
+                  <Icon size={18} strokeWidth={1.9} />
+                  <span>{label}</span>
+                  <ChevronDown size={15} className="sidebar-nav-chevron" aria-hidden="true" />
+                </summary>
+                <div className="sidebar-nav-children">{items.map(renderNavItem)}</div>
+              </details>;
+            })}
           </nav>
 
           <div className="sidebar-footer">
